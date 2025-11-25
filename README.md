@@ -1,20 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SkillSeed Graph (React Native)
 
-# Run and deploy your AI Studio app
+This project visualizes learning paths as a radial skill graph, now built with React Native and Expo so it can be viewed directly in Expo Go.
 
-This contains everything you need to run your app locally.
+## Prerequisites
+- Node.js 18+
+- Yarn 4 (included via the repo)
+- Expo Go on your device or an emulator/simulator
 
-View your app in AI Studio: https://ai.studio/apps/drive/1ZV7ux-ngV8vwW-ESC_BMRAroTisEJMMU
+## Getting started
+1. Install dependencies with Yarn:
+   ```sh
+   yarn install
+   ```
+2. Start the Expo development server:
+   ```sh
+   yarn start
+   ```
+3. Open the QR code in Expo Go (or press the onscreen shortcuts for Android/iOS/web) to launch the app.
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Features
+- Radial SVG graph that groups skills by tag and difficulty.
+- Persistent storage via AsyncStorage so your nodes and tags survive restarts.
+- Modal editor to add or update skills, with difficulty selection and comma-delimited tags.
+- Tag legend with quick filtering and reset controls.

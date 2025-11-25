@@ -1,33 +1,41 @@
+import { useCallback, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useState } from 'react';
+function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void, boolean] {
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [hydrated, setHydrated] = useState(false);
 
-function useLocalStorage<T,>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const item = await AsyncStorage.getItem(key);
+        if (item != null) {
+          setStoredValue(JSON.parse(item));
+        }
+      } catch (error) {
+        console.warn('Failed to read from storage', error);
+      } finally {
+        setHydrated(true);
       }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    };
 
-  return [storedValue, setValue];
+    load();
+  }, [key]);
+
+  const setValue = useCallback(
+    (value: T | ((val: T) => T)) => {
+      setStoredValue((current) => {
+        const valueToStore = value instanceof Function ? value(current) : value;
+        AsyncStorage.setItem(key, JSON.stringify(valueToStore)).catch((error) =>
+          console.warn('Failed to persist to storage', error)
+        );
+        return valueToStore;
+      });
+    },
+    [key]
+  );
+
+  return [storedValue, setValue, hydrated];
 }
 
 export default useLocalStorage;

@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "SkillSeedGraphNative",
+    "slug": "skillseed-graph-native",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "skillseedgraph",
+    "platforms": ["android", "ios", "web"],
+    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    }
+  }
+}
