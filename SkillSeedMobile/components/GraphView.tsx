@@ -145,6 +145,14 @@ const GraphView: React.FC<GraphViewProps> = ({
     // Refs for PanResponder
     const lastTransform = useRef({ x: 0, y: 0, k: 1 });
     const lastDistance = useRef<number | null>(null);
+    const transformRef = useRef(transform);
+    const onBackgroundClickRef = useRef(onBackgroundClick);
+
+    // Update refs
+    useEffect(() => {
+        transformRef.current = transform;
+        onBackgroundClickRef.current = onBackgroundClick;
+    }, [transform, onBackgroundClick]);
 
     // We use a ref to keep track of the simulation instance
     const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
@@ -154,7 +162,7 @@ const GraphView: React.FC<GraphViewProps> = ({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (evt) => {
-                lastTransform.current = transform;
+                lastTransform.current = transformRef.current;
                 const touches = evt.nativeEvent.touches;
                 if (touches.length === 2) {
                     lastDistance.current = getDistance(touches);
@@ -168,7 +176,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                 // Handle transition from 1 to 2 fingers
                 if (touches.length === 2 && lastDistance.current === null) {
                     lastDistance.current = getDistance(touches);
-                    lastTransform.current = transform; // Reset base transform for zoom
+                    lastTransform.current = transformRef.current; // Reset base transform for zoom
                     return;
                 }
 
@@ -194,11 +202,11 @@ const GraphView: React.FC<GraphViewProps> = ({
             },
             onPanResponderRelease: (evt, gestureState) => {
                 if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5 && !lastDistance.current) {
-                    onBackgroundClick();
+                    onBackgroundClickRef.current();
                 }
                 lastDistance.current = null;
                 // Update lastTransform on release so next gesture starts from here
-                lastTransform.current = transform;
+                lastTransform.current = transformRef.current;
             }
         })
     ).current;
