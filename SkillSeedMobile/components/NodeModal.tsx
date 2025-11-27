@@ -65,6 +65,17 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
         setShowLinkSuggestions(false);
     }, [nodeToEdit, isOpen]);
 
+    // Auto-focus title for new notes
+    const titleInputRef = React.useRef<TextInput>(null);
+    useEffect(() => {
+        if (isOpen && !nodeToEdit) {
+            // Small timeout to ensure modal is visible
+            setTimeout(() => {
+                titleInputRef.current?.focus();
+            }, 100);
+        }
+    }, [isOpen, nodeToEdit]);
+
     useEffect(() => {
         if (tagInput.trim()) {
             const filtered = allTags.filter(tag =>
@@ -157,80 +168,89 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
     };
 
     return (
-        <Modal visible={isOpen} animationType="slide" transparent>
+        <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet">
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={tw`flex-1`}
+                style={tw`flex-1 bg-gray-900`}
             >
-                <View style={tw`flex-1 justify-end bg-black bg-opacity-50`}>
-                    <View style={tw`bg-gray-900 rounded-t-3xl h-[90%]`}>
-                        <View style={tw`p-4 border-b border-gray-700`}>
-                            <TextInput
-                                style={tw`text-2xl font-bold text-white`}
-                                value={title}
-                                onChangeText={setTitle}
-                                placeholder="Untitled"
-                                placeholderTextColor="#6b7280"
-                            />
+                <View style={tw`flex-1 bg-gray-900`}>
+                    {/* Header: Title */}
+                    <View style={tw`px-6 pt-6 pb-4`}>
+                        <TextInput
+                            ref={titleInputRef}
+                            style={tw`text-3xl font-bold text-white`}
+                            value={title}
+                            onChangeText={setTitle}
+                            placeholder="Untitled"
+                            placeholderTextColor="#4b5563"
+                            selectionColor="#818cf8"
+                        />
+                    </View>
+
+                    {/* Toolbar */}
+                    <View style={tw`px-6 pb-4 flex-col gap-4 border-b border-gray-800`}>
+                        {/* Tags Row */}
+                        <View style={tw`flex-row flex-wrap items-center gap-2`}>
+                            {selectedTags.map(tagName => {
+                                const tag = allTags.find(t => t.name === tagName);
+                                return (
+                                    <TouchableOpacity
+                                        key={tagName}
+                                        onPress={() => handleRemoveTag(tagName)}
+                                        style={[tw`px-3 py-1.5 rounded-full flex-row items-center`, { backgroundColor: tag?.color || '#6366f1' }]}
+                                    >
+                                        <Text style={tw`text-white text-xs font-bold mr-1`}>{tagName}</Text>
+                                        <Text style={tw`text-white text-xs opacity-70`}>×</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+
+                            <View style={tw`relative z-50`}>
+                                <TextInput
+                                    style={tw`bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm min-w-24`}
+                                    value={tagInput}
+                                    onChangeText={setTagInput}
+                                    onSubmitEditing={handleTagInputSubmit}
+                                    placeholder="# Add tags..."
+                                    placeholderTextColor="#6b7280"
+                                    returnKeyType="done"
+                                />
+
+                                {showTagSuggestions && (
+                                    <View style={tw`absolute top-10 left-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-48 overflow-hidden`}>
+                                        {tagSuggestions.map(tag => (
+                                            <TouchableOpacity
+                                                key={tag.name}
+                                                onPress={() => handleAddTag(tag.name)}
+                                                style={tw`px-4 py-3 border-b border-gray-700 active:bg-gray-700`}
+                                            >
+                                                <Text style={tw`text-white text-sm`}>{tag.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
                         </View>
 
-                        <View style={tw`px-4 py-3 border-b border-gray-700 flex-row items-center justify-between`}>
-                            <View style={tw`flex-1 flex-row items-center`}>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw`flex-row mr-2`}>
-                                    {selectedTags.map(tagName => {
-                                        const tag = allTags.find(t => t.name === tagName);
-                                        return (
-                                            <TouchableOpacity
-                                                key={tagName}
-                                                onPress={() => handleRemoveTag(tagName)}
-                                                style={[tw`px-3 py-1 rounded-full mr-2 flex-row items-center`, { backgroundColor: tag?.color || '#6366f1' }]}
-                                            >
-                                                <Text style={tw`text-white text-xs font-bold mr-1`}>{tagName}</Text>
-                                                <Text style={tw`text-white text-xs`}>×</Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </ScrollView>
-
-                                <View style={tw`relative`}>
-                                    <TextInput
-                                        style={tw`bg-gray-800 text-white px-3 py-1 rounded-full text-xs min-w-24`}
-                                        value={tagInput}
-                                        onChangeText={setTagInput}
-                                        onSubmitEditing={handleTagInputSubmit}
-                                        placeholder="# Add tags..."
-                                        placeholderTextColor="#6b7280"
-                                        returnKeyType="done"
-                                    />
-
-                                    {showTagSuggestions && (
-                                        <View style={tw`absolute top-8 left-0 bg-gray-800 rounded-lg shadow-lg z-50 w-48`}>
-                                            {tagSuggestions.map(tag => (
-                                                <TouchableOpacity
-                                                    key={tag.name}
-                                                    onPress={() => handleAddTag(tag.name)}
-                                                    style={tw`px-4 py-2 border-b border-gray-700`}
-                                                >
-                                                    <Text style={tw`text-white text-sm`}>{tag.name}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-
-                            <View style={tw`relative ml-2`}>
+                        {/* Controls Row: Difficulty & View Toggle */}
+                        <View style={tw`flex-row justify-between items-center`}>
+                            <View style={tw`relative z-40`}>
                                 <TouchableOpacity
                                     onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
-                                    style={tw`flex-row bg-gray-800 rounded-lg items-center px-2 py-1`}
+                                    style={tw`flex-row bg-gray-800 rounded-lg items-center px-3 py-2 border border-gray-700`}
                                 >
-                                    <Text style={tw`text-gray-400 text-xs mr-1`}>DIFF:</Text>
-                                    <Text style={tw`text-white text-xs mr-1`}>{difficulty}</Text>
-                                    <Text style={tw`text-gray-400 text-xs`}>▼</Text>
+                                    <Text style={tw`text-gray-400 text-xs mr-2 font-medium tracking-wide`}>DIFFICULTY</Text>
+                                    <Text style={[
+                                        tw`text-xs font-bold mr-2`,
+                                        difficulty === Difficulty.Easy ? tw`text-green-400` :
+                                            difficulty === Difficulty.Medium ? tw`text-yellow-400` :
+                                                tw`text-red-400`
+                                    ]}>{difficulty}</Text>
+                                    <Text style={tw`text-gray-500 text-[10px]`}>▼</Text>
                                 </TouchableOpacity>
 
                                 {showDifficultyDropdown && (
-                                    <View style={tw`absolute top-8 right-0 bg-gray-800 rounded-lg shadow-lg z-50 w-32`}>
+                                    <View style={tw`absolute top-10 left-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-40 overflow-hidden`}>
                                         {DIFFICULTY_LEVELS.map(diff => (
                                             <TouchableOpacity
                                                 key={diff}
@@ -238,7 +258,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                                                     setDifficulty(diff);
                                                     setShowDifficultyDropdown(false);
                                                 }}
-                                                style={[tw`px-4 py-2 border-b border-gray-700`, difficulty === diff && tw`bg-gray-700`]}
+                                                style={[tw`px-4 py-3 border-b border-gray-700`, difficulty === diff && tw`bg-gray-700`]}
                                             >
                                                 <Text style={[tw`text-sm`, difficulty === diff ? tw`text-white font-bold` : tw`text-gray-300`]}>{diff}</Text>
                                             </TouchableOpacity>
@@ -247,94 +267,106 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                                 )}
                             </View>
 
-                            <View style={tw`flex-row bg-gray-800 p-1 rounded-lg ml-2 border border-gray-700`}>
+                            <View style={tw`flex-row bg-gray-800 p-1 rounded-lg border border-gray-700`}>
                                 <TouchableOpacity
                                     onPress={() => setIsPreview(false)}
-                                    style={[tw`p-1.5 rounded`, !isPreview && tw`bg-indigo-600 shadow-sm`]}
+                                    style={[tw`p-2 rounded-md`, !isPreview && tw`bg-gray-700`]}
                                 >
-                                    <PencilIcon color={!isPreview ? "#ffffff" : "#9ca3af"} />
+                                    <PencilIcon color={!isPreview ? "#ffffff" : "#6b7280"} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setIsPreview(true)}
-                                    style={[tw`p-1.5 rounded`, isPreview && tw`bg-indigo-600 shadow-sm`]}
+                                    style={[tw`p-2 rounded-md`, isPreview && tw`bg-gray-700`]}
                                 >
-                                    <EyeIcon color={isPreview ? "#ffffff" : "#9ca3af"} />
+                                    <EyeIcon color={isPreview ? "#ffffff" : "#6b7280"} />
                                 </TouchableOpacity>
                             </View>
                         </View>
+                    </View>
 
-                        <ScrollView style={tw`flex-1 px-4 py-4`}>
-                            {isPreview ? (
+                    {/* Editor Area */}
+                    <View style={tw`flex-1 px-6 py-4`}>
+                        {isPreview ? (
+                            <ScrollView style={tw`flex-1`}>
                                 <Markdown style={{
-                                    body: { color: '#e5e7eb' },
-                                    heading1: { color: '#ffffff' },
-                                    heading2: { color: '#ffffff' },
-                                    link: { color: '#6366f1' },
-                                    code_inline: { backgroundColor: '#374151', color: '#e5e7eb' },
-                                    code_block: { backgroundColor: '#1f2937', color: '#e5e7eb' },
+                                    body: { color: '#e5e7eb', fontSize: 16, lineHeight: 24 },
+                                    heading1: { color: '#ffffff', fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
+                                    heading2: { color: '#ffffff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
+                                    link: { color: '#818cf8' },
+                                    code_inline: { backgroundColor: '#374151', color: '#e5e7eb', borderRadius: 4, paddingHorizontal: 4 },
+                                    code_block: { backgroundColor: '#111827', color: '#e5e7eb', borderRadius: 8, padding: 12 },
                                 }}>
                                     {description || '_Start typing... Use [[ to link to other skills._'}
                                 </Markdown>
-                            ) : (
-                                <View>
-                                    <TextInput
-                                        style={tw`bg-gray-800 text-white p-3 rounded-lg min-h-64 text-base`}
-                                        value={description}
-                                        onChangeText={setDescription}
-                                        onSelectionChange={(e) => setCursorPosition(e.nativeEvent.selection.start)}
-                                        placeholder="Start typing... Use [[ to link to other skills."
-                                        placeholderTextColor="#6b7280"
-                                        multiline
-                                        textAlignVertical="top"
-                                    />
+                            </ScrollView>
+                        ) : (
+                            <View style={tw`flex-1 relative`}>
+                                <TextInput
+                                    style={tw`flex-1 text-white text-base leading-6 text-gray-200`}
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    onSelectionChange={(e) => setCursorPosition(e.nativeEvent.selection.start)}
+                                    placeholder="Start typing... Use [[ to link to other skills."
+                                    placeholderTextColor="#4b5563"
+                                    multiline
+                                    textAlignVertical="top"
+                                    selectionColor="#818cf8"
+                                />
 
-                                    {showLinkSuggestions && linkSuggestions.length > 0 && (
-                                        <View style={tw`mt-2 bg-gray-800 rounded-lg shadow-lg max-h-48`}>
-                                            <Text style={tw`text-gray-400 text-xs px-3 py-2 border-b border-gray-700`}>Link to:</Text>
-                                            <FlatList
-                                                data={linkSuggestions.slice(0, 5)}
-                                                keyExtractor={(item) => item.id}
-                                                renderItem={({ item }) => (
-                                                    <TouchableOpacity
-                                                        onPress={() => handleSelectLink(item)}
-                                                        style={tw`px-3 py-2 border-b border-gray-700`}
-                                                    >
-                                                        <Text style={tw`text-white text-sm`}>{item.title}</Text>
-                                                        <Text style={tw`text-gray-500 text-xs`}>{item.tags[0]} / {item.difficulty}</Text>
-                                                    </TouchableOpacity>
-                                                )}
-                                            />
+                                {showLinkSuggestions && linkSuggestions.length > 0 && (
+                                    <View style={tw`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-xl shadow-2xl border-t border-gray-700 max-h-64`}>
+                                        <View style={tw`px-4 py-3 border-b border-gray-700 bg-gray-800 rounded-t-xl`}>
+                                            <Text style={tw`text-gray-400 text-xs font-bold uppercase tracking-wider`}>Link to Note</Text>
                                         </View>
-                                    )}
-                                </View>
-                            )}
-                        </ScrollView>
-
-                        <View style={tw`p-4 border-t border-gray-700 flex-row justify-between`}>
-                            {nodeToEdit && (
-                                <TouchableOpacity
-                                    onPress={() => onDelete(nodeToEdit.id)}
-                                    style={tw`px-4 py-2`}
-                                >
-                                    <Text style={tw`text-red-400 font-bold`}>Delete File</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            <View style={tw`flex-row ml-auto`}>
-                                <TouchableOpacity
-                                    onPress={onClose}
-                                    style={tw`px-4 py-2 mr-2`}
-                                >
-                                    <Text style={tw`text-gray-400`}>Cancel</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    onPress={handleSave}
-                                    style={tw`bg-indigo-600 px-6 py-2 rounded-lg`}
-                                >
-                                    <Text style={tw`text-white font-bold`}>Save</Text>
-                                </TouchableOpacity>
+                                        <FlatList
+                                            data={linkSuggestions}
+                                            keyExtractor={(item) => item.id}
+                                            renderItem={({ item }) => (
+                                                <TouchableOpacity
+                                                    onPress={() => handleSelectLink(item)}
+                                                    style={tw`px-4 py-3 border-b border-gray-700 active:bg-gray-700`}
+                                                >
+                                                    <Text style={tw`text-white text-sm font-medium`}>{item.title}</Text>
+                                                    <View style={tw`flex-row items-center mt-1`}>
+                                                        <View style={[tw`w-2 h-2 rounded-full mr-2`, { backgroundColor: allTags.find(t => t.name === item.tags[0])?.color || '#cbd5e1' }]} />
+                                                        <Text style={tw`text-gray-500 text-xs`}>{item.tags[0]} • {item.difficulty}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            )}
+                                        />
+                                    </View>
+                                )}
                             </View>
+                        )}
+                    </View>
+
+                    {/* Footer */}
+                    <View style={tw`px-6 py-4 border-t border-gray-800 flex-row justify-between items-center bg-gray-900`}>
+                        {nodeToEdit ? (
+                            <TouchableOpacity
+                                onPress={() => onDelete(nodeToEdit.id)}
+                                style={tw`p-2`}
+                            >
+                                <Text style={tw`text-red-400 text-sm font-medium`}>Delete</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View /> /* Spacer */
+                        )}
+
+                        <View style={tw`flex-row items-center gap-4`}>
+                            <TouchableOpacity
+                                onPress={onClose}
+                                style={tw`px-4 py-2`}
+                            >
+                                <Text style={tw`text-gray-400 font-medium`}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={handleSave}
+                                style={tw`bg-indigo-600 px-6 py-2.5 rounded-full shadow-lg shadow-indigo-500/20`}
+                            >
+                                <Text style={tw`text-white font-bold tracking-wide`}>Save Note</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
