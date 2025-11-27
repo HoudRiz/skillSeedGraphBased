@@ -35,17 +35,21 @@ const getDistance = (touches: any[]) => {
 // GraphNode Component - Purely presentational now
 const GraphNode = React.memo(({
     node,
+    x,
+    y,
     tags,
     isMobile,
     nodeRadius
 }: {
     node: SimulationNode;
+    x?: number;
+    y?: number;
     tags: Tag[];
     isMobile: boolean;
     nodeRadius: number;
 }) => {
     return (
-        <G transform={`translate(${node.x || 0}, ${node.y || 0})`}>
+        <G transform={`translate(${x || 0}, ${y || 0})`}>
             <Circle
                 r={nodeRadius}
                 fill={tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1"}
@@ -481,6 +485,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                             <GraphNode
                                 key={node.id}
                                 node={node}
+                                x={node.x}
+                                y={node.y}
                                 tags={tags}
                                 isMobile={isMobile}
                                 nodeRadius={nodeRadius}
