@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { View, PanResponder, Animated } from 'react-native';
+import { View, PanResponder, Animated, GestureResponderEvent, PanResponderInstance } from 'react-native';
 import Svg, { Circle, Line, G, Path, Text as SvgText } from 'react-native-svg';
 import * as d3 from 'd3';
 import { Node, Tag } from '../types';
@@ -20,7 +20,113 @@ interface GraphViewProps {
 interface SimulationNode extends d3.SimulationNodeDatum, Node {
     targetX?: number;
     targetY?: number;
+    fx?: number | null;
+    fy?: number | null;
 }
+
+// Helper for distance
+const getDistance = (touches: any[]) => {
+    const [t1, t2] = touches;
+    const dx = t1.pageX - t2.pageX;
+    const dy = t1.pageY - t2.pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+};
+
+// GraphNode Component
+const GraphNode = React.memo(({
+    node,
+    simulation,
+    onNodeClick,
+    scale,
+    tags,
+    isMobile,
+    nodeRadius
+}: {
+    node: SimulationNode;
+    simulation: d3.Simulation<SimulationNode, undefined> | null;
+    onNodeClick: (node: Node) => void;
+    scale: number;
+    tags: Tag[];
+    isMobile: boolean;
+    nodeRadius: number;
+}) => {
+    // Use refs to keep track of latest props without re-creating PanResponder
+    const nodeRef = useRef(node);
+    const simulationRef = useRef(simulation);
+    const scaleRef = useRef(scale);
+    const onNodeClickRef = useRef(onNodeClick);
+
+    // Update refs on every render
+    useEffect(() => {
+        nodeRef.current = node;
+        simulationRef.current = simulation;
+        scaleRef.current = scale;
+        onNodeClickRef.current = onNodeClick;
+    }, [node, simulation, scale, onNodeClick]);
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+                const sim = simulationRef.current;
+                const n = nodeRef.current;
+                if (!sim) return;
+
+                sim.alphaTarget(0.3).restart();
+                (n as any)._dragStartX = n.x;
+                (n as any)._dragStartY = n.y;
+                n.fx = n.x;
+                n.fy = n.y;
+            },
+            onPanResponderMove: (event, gestureState) => {
+                const sim = simulationRef.current;
+                const n = nodeRef.current;
+                const s = scaleRef.current;
+                if (!sim) return;
+
+                const startX = (n as any)._dragStartX || 0;
+                const startY = (n as any)._dragStartY || 0;
+                n.fx = startX + gestureState.dx / s;
+                n.fy = startY + gestureState.dy / s;
+                sim.restart();
+            },
+            onPanResponderRelease: (e, gestureState) => {
+                const sim = simulationRef.current;
+                const n = nodeRef.current;
+                if (!sim) return;
+
+                if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5) {
+                    onNodeClickRef.current(n);
+                }
+                n.fx = null;
+                n.fy = null;
+                sim.alphaTarget(0);
+            },
+        })
+    ).current;
+
+    return (
+        <G
+            transform={`translate(${node.x || 0}, ${node.y || 0})`}
+            {...panResponder.panHandlers}
+        >
+            <Circle
+                r={nodeRadius}
+                fill={tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1"}
+                stroke="#1a202c"
+                strokeWidth={isMobile ? 1.5 : 2}
+            />
+            <SvgText
+                y={isMobile ? 14 : 18}
+                fill="rgba(255,255,255,0.9)"
+                fontSize={isMobile ? 9 : 10}
+                textAnchor="middle"
+            >
+                {node.title.length > (isMobile ? 10 : 14) ? node.title.substring(0, (isMobile ? 8 : 11)) + '...' : node.title}
+            </SvgText>
+        </G>
+    );
+});
 
 const GraphView: React.FC<GraphViewProps> = ({
     nodes,
@@ -34,9 +140,68 @@ const GraphView: React.FC<GraphViewProps> = ({
 }) => {
     // State for simulation nodes to trigger re-renders
     const [simNodes, setSimNodes] = useState<SimulationNode[]>([]);
+    const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+
+    // Refs for PanResponder
+    const lastTransform = useRef({ x: 0, y: 0, k: 1 });
+    const lastDistance = useRef<number | null>(null);
 
     // We use a ref to keep track of the simulation instance
     const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
+
+    const bgPanResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (evt) => {
+                lastTransform.current = transform;
+                const touches = evt.nativeEvent.touches;
+                if (touches.length === 2) {
+                    lastDistance.current = getDistance(touches);
+                } else {
+                    lastDistance.current = null;
+                }
+            },
+            onPanResponderMove: (evt, gestureState) => {
+                const touches = evt.nativeEvent.touches;
+
+                // Handle transition from 1 to 2 fingers
+                if (touches.length === 2 && lastDistance.current === null) {
+                    lastDistance.current = getDistance(touches);
+                    lastTransform.current = transform; // Reset base transform for zoom
+                    return;
+                }
+
+                if (touches.length === 1 && lastDistance.current === null) {
+                    // Pan
+                    setTransform({
+                        x: lastTransform.current.x + gestureState.dx,
+                        y: lastTransform.current.y + gestureState.dy,
+                        k: lastTransform.current.k
+                    });
+                } else if (touches.length === 2) {
+                    // Zoom
+                    const dist = getDistance(touches);
+                    if (lastDistance.current) {
+                        const scaleFactor = dist / lastDistance.current;
+                        const newScale = Math.max(0.5, Math.min(3, lastTransform.current.k * scaleFactor));
+                        setTransform(prev => ({
+                            ...prev,
+                            k: newScale
+                        }));
+                    }
+                }
+            },
+            onPanResponderRelease: (evt, gestureState) => {
+                if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5 && !lastDistance.current) {
+                    onBackgroundClick();
+                }
+                lastDistance.current = null;
+                // Update lastTransform on release so next gesture starts from here
+                lastTransform.current = transform;
+            }
+        })
+    ).current;
 
     const isMobile = width < 640;
     const margin = isMobile ? 25 : 40;
@@ -89,7 +254,6 @@ const GraphView: React.FC<GraphViewProps> = ({
             // Preserve existing positions if available (from previous sim state) to avoid jumping
             // For now, we just recalculate or use random. 
             // In a real app, we might want to merge with existing simNodes.
-
             return {
                 ...node,
                 targetX: r * Math.cos(angle - Math.PI / 2),
@@ -141,16 +305,23 @@ const GraphView: React.FC<GraphViewProps> = ({
         // We can just find source/target in simNodes.
 
         return nodes.flatMap(sourceNode => {
+            // If activeTag is set, only show links where both nodes are in the active tag
+            if (activeTag && !sourceNode.tags.includes(activeTag)) return [];
+
             const source = simNodes.find(n => n.id === sourceNode.id);
             if (!source) return [];
 
             return sourceNode.links.map(targetId => {
+                const targetNode = nodes.find(n => n.id === targetId);
+                // Filter target if activeTag is set
+                if (activeTag && targetNode && !targetNode.tags.includes(activeTag)) return null;
+
                 const target = simNodes.find(n => n.id === targetId);
                 if (!target) return null;
                 return { source, target };
             }).filter(Boolean) as { source: SimulationNode, target: SimulationNode }[];
         });
-    }, [simNodes, nodes]);
+    }, [simNodes, nodes, activeTag]);
 
     // Pan/Zoom State (Simple implementation)
     // For now, we just center the graph. 
@@ -158,20 +329,30 @@ const GraphView: React.FC<GraphViewProps> = ({
     // We'll stick to static centered view for MVP.
 
     return (
-        <View style={{ width, height, overflow: 'hidden' }}>
-            <Svg width={width} height={height} onPress={onBackgroundClick}>
-                <G transform={`translate(${centerX}, ${centerY})`}>
+        <View style={{ width, height, overflow: 'hidden' }} {...bgPanResponder.panHandlers}>
+            <Svg width={width} height={height}>
+                <G transform={`translate(${centerX + transform.x}, ${centerY + transform.y}) scale(${transform.k})`}>
                     {/* Background Sectors */}
                     {sectors.map((sector, i) => (
-                        <Path
-                            key={sector.tag.name}
-                            d={sector.path}
-                            fill={sector.tag.color}
-                            fillOpacity={isZoomed ? 0.1 : 0.05}
-                            stroke="#ffffff"
-                            strokeOpacity={0.05}
-                            onPress={() => !isZoomed && onTagClick(sector.tag.name)}
-                        />
+                        <G key={sector.tag.name}>
+                            {/* Visual sector */}
+                            <Path
+                                d={sector.path}
+                                fill={sector.tag.color}
+                                fillOpacity={isZoomed ? 0.1 : 0.05}
+                                stroke="#ffffff"
+                                strokeOpacity={0.05}
+                            />
+                            {/* Invisible clickable overlay - larger hit area */}
+                            <Path
+                                d={sector.path}
+                                fill={sector.tag.color}
+                                fillOpacity={0.01}
+                                stroke="transparent"
+                                strokeWidth={20}
+                                onPress={() => !isZoomed && onTagClick(sector.tag.name)}
+                            />
+                        </G>
                     ))}
 
                     {/* Sector Labels */}
@@ -224,31 +405,23 @@ const GraphView: React.FC<GraphViewProps> = ({
                     ))}
 
                     {/* Nodes */}
-                    {simNodes.map(node => (
-                        <G
-                            key={node.id}
-                            transform={`translate(${node.x || 0}, ${node.y || 0})`}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                onNodeClick(node);
-                            }}
-                        >
-                            <Circle
-                                r={nodeRadius}
-                                fill={tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1"}
-                                stroke="#1a202c"
-                                strokeWidth={isMobile ? 1.5 : 2}
+                    {simNodes.map(node => {
+                        // If activeTag is set, only render nodes that belong to it
+                        if (activeTag && !node.tags.includes(activeTag)) return null;
+
+                        return (
+                            <GraphNode
+                                key={node.id}
+                                node={node}
+                                simulation={simulationRef.current}
+                                onNodeClick={onNodeClick}
+                                scale={transform.k}
+                                tags={tags}
+                                isMobile={isMobile}
+                                nodeRadius={nodeRadius}
                             />
-                            <SvgText
-                                y={isMobile ? 14 : 18}
-                                fill="rgba(255,255,255,0.9)"
-                                fontSize={isMobile ? 9 : 10}
-                                textAnchor="middle"
-                            >
-                                {node.title.length > (isMobile ? 10 : 14) ? node.title.substring(0, (isMobile ? 8 : 11)) + '...' : node.title}
-                            </SvgText>
-                        </G>
-                    ))}
+                        );
+                    })}
                 </G>
             </Svg>
         </View>
