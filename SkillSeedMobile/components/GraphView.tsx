@@ -306,8 +306,10 @@ const GraphView: React.FC<GraphViewProps> = ({
         .domain(tags.map(t => t.name))
         .range([0, 2 * Math.PI]), [tags]);
 
-    // Background Sectors
+    // Background Sectors - only show when there are 2+ tags
     const sectors = useMemo(() => {
+        if (tags.length < 2) return [];
+
         const arc = d3.arc<Tag>()
             .innerRadius(0)
             .outerRadius(radius)
@@ -337,16 +339,15 @@ const GraphView: React.FC<GraphViewProps> = ({
         // Prepare nodes
         const initialNodes: SimulationNode[] = nodes.map((node, index) => {
             if (isUnassigned(node)) {
-                // Position unassigned nodes on outer ring
+                // Position unassigned nodes on outer ring - no targetX/targetY to allow free movement
                 const unassignedIndex = unassignedNodes.findIndex(n => n.id === node.id);
                 const baseAngle = (2 * Math.PI * unassignedIndex) / Math.max(unassignedNodes.length, 1);
 
                 return {
                     ...node,
-                    targetX: unassignedRadius * Math.cos(baseAngle - Math.PI / 2),
-                    targetY: unassignedRadius * Math.sin(baseAngle - Math.PI / 2),
-                    x: unassignedRadius * Math.cos(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 10,
-                    y: unassignedRadius * Math.sin(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 10,
+                    // Initial position only, no target to allow free movement within ring
+                    x: unassignedRadius * Math.cos(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 20,
+                    y: unassignedRadius * Math.sin(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 20,
                 };
             } else {
                 // Tagged nodes use existing sector-based positioning
@@ -382,11 +383,15 @@ const GraphView: React.FC<GraphViewProps> = ({
         } else {
             // Apply different forces for unassigned vs tagged nodes
             simulation
-                .force("x", d3.forceX<SimulationNode>(d => d.targetX!).strength(0.2))
-                .force("y", d3.forceY<SimulationNode>(d => d.targetY!).strength(0.2))
+                .force("x", d3.forceX<SimulationNode>(d => {
+                    return isUnassigned(d) ? 0 : d.targetX!;
+                }).strength(d => isUnassigned(d) ? 0 : 0.2))
+                .force("y", d3.forceY<SimulationNode>(d => {
+                    return isUnassigned(d) ? 0 : d.targetY!;
+                }).strength(d => isUnassigned(d) ? 0 : 0.2))
                 .force("radialUnassigned", d3.forceRadial<SimulationNode>(d => {
                     return isUnassigned(d) ? unassignedRadius : 0;
-                }).strength(d => isUnassigned(d) ? 0.5 : 0));
+                }).strength(d => isUnassigned(d) ? 0.8 : 0));
         }
 
         simulation.on("tick", () => {

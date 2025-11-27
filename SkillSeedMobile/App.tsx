@@ -291,10 +291,10 @@ export default function App() {
     <SafeAreaView style={tw`flex-1 bg-gray-900`}>
       <StatusBar barStyle="light-content" />
       <View style={tw`relative flex-1`}>
-        <View style={tw`absolute top-6 left-4 z-10 max-w-[70%]`}>
+        <View style={tw`absolute top-6 left-4 z-10 flex-col items-start gap-2`}>
           <TouchableOpacity
             onPress={() => setIsSidebarOpen(true)}
-            style={tw`bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-lg`}
+            style={tw`bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-lg w-10 h-10 items-center justify-center`}
           >
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <Path d="M3 12h18M3 6h18M3 18h18" />
@@ -304,7 +304,7 @@ export default function App() {
           {activeTag && (
             <TouchableOpacity
               onPress={() => setActiveTag(null)}
-              style={tw`mt-2 bg-gray-800 border border-indigo-900 px-3 py-1.5 rounded shadow-sm`}
+              style={tw`bg-gray-800 border border-indigo-900 px-3 py-1.5 rounded shadow-sm`}
             >
               <Text style={tw`text-xs text-indigo-400`}>&larr; Back to Overview</Text>
             </TouchableOpacity>
