@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import tw from 'twrnc';
 import { Node, Tag, Difficulty } from '../types';
+import { isUnassigned } from '../utils';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -55,6 +56,8 @@ interface SidebarProps {
     nodes: Node[];
     tags: Tag[];
     onNodeClick: (node: Node) => void;
+    onTagClick: (tagName: string | 'UNASSIGNED') => void;
+    onDeleteTag: (tagName: string) => void;
     onToggleDifficulty: () => void;
     difficultyVisible: boolean;
     onReset: () => void;
@@ -70,6 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     nodes,
     tags,
     onNodeClick,
+    onTagClick,
+    onDeleteTag,
     onToggleDifficulty,
     difficultyVisible,
     onReset,
@@ -187,8 +192,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     const groupedNodes = useMemo(() => {
         const groups: { [key: string]: Node[] } = {};
         tags.forEach(tag => groups[tag.name] = []);
+        groups['UNASSIGNED'] = []; // Add unassigned group
+
         filteredAndSortedNodes.forEach(node => {
-            if (groups[node.tags[0]]) {
+            if (isUnassigned(node)) {
+                groups['UNASSIGNED'].push(node);
+            } else if (groups[node.tags[0]]) {
                 groups[node.tags[0]].push(node);
             }
         });
@@ -298,15 +307,26 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                 onPress={() => toggleTag(tag.name)}
                                                 style={tw`flex-row items-center justify-between p-4 bg-gray-900 active:bg-gray-800`}
                                             >
-                                                <View style={tw`flex-row items-center`}>
+                                                <View style={tw`flex-row items-center flex-1`}>
                                                     <View style={[tw`w-3 h-3 rounded-full mr-3`, { backgroundColor: tag.color }]} />
                                                     <Text style={tw`text-white font-bold text-sm`}>{tag.name}</Text>
                                                     <View style={tw`ml-2 bg-gray-800 px-2 py-0.5 rounded-full`}>
                                                         <Text style={tw`text-gray-400 text-xs`}>{tagNodes.length}</Text>
                                                     </View>
                                                 </View>
-                                                <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
-                                                    <ChevronRightIcon color="#9ca3af" />
+                                                <View style={tw`flex-row items-center gap-2`}>
+                                                    <TouchableOpacity
+                                                        onPress={(e) => {
+                                                            e.stopPropagation();
+                                                            onDeleteTag(tag.name);
+                                                        }}
+                                                        style={tw`p-1`}
+                                                    >
+                                                        <Text style={tw`text-red-400`}><TrashIcon /></Text>
+                                                    </TouchableOpacity>
+                                                    <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
+                                                        <ChevronRightIcon color="#9ca3af" />
+                                                    </View>
                                                 </View>
                                             </TouchableOpacity>
 
@@ -329,6 +349,61 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         </View>
                                     );
                                 })}
+
+                                {/* Unassigned Category */}
+                                {(() => {
+                                    const unassignedNodes = groupedNodes['UNASSIGNED'] || [];
+                                    const isExpanded = expandedTags.has('UNASSIGNED');
+
+                                    return (
+                                        <View key="UNASSIGNED" style={tw`border-b border-gray-800`}>
+                                            <TouchableOpacity
+                                                onPress={() => toggleTag('UNASSIGNED')}
+                                                style={tw`flex-row items-center justify-between p-4 bg-gray-900 active:bg-gray-800`}
+                                            >
+                                                <View style={tw`flex-row items-center flex-1`}>
+                                                    <View style={[tw`w-3 h-3 rounded-full mr-3`, { backgroundColor: '#94a3b8' }]} />
+                                                    <Text style={tw`text-gray-400 font-bold text-sm italic`}>Unassigned</Text>
+                                                    <View style={tw`ml-2 bg-gray-800 px-2 py-0.5 rounded-full`}>
+                                                        <Text style={tw`text-gray-400 text-xs`}>{unassignedNodes.length}</Text>
+                                                    </View>
+                                                </View>
+                                                <View style={tw`flex-row items-center gap-2`}>
+                                                    <TouchableOpacity
+                                                        onPress={(e) => {
+                                                            e.stopPropagation();
+                                                            onTagClick('UNASSIGNED');
+                                                            onClose();
+                                                        }}
+                                                        style={tw`px-2 py-1 bg-gray-800 rounded`}
+                                                    >
+                                                        <Text style={tw`text-gray-400 text-xs`}>View</Text>
+                                                    </TouchableOpacity>
+                                                    <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
+                                                        <ChevronRightIcon color="#9ca3af" />
+                                                    </View>
+                                                </View>
+                                            </TouchableOpacity>
+
+                                            {isExpanded && (
+                                                <View style={tw`bg-gray-900/50`}>
+                                                    {unassignedNodes.map(node => (
+                                                        <TouchableOpacity
+                                                            key={node.id}
+                                                            onPress={() => {
+                                                                onNodeClick(node);
+                                                                onClose();
+                                                            }}
+                                                            style={tw`pl-10 pr-4 py-3 border-t border-gray-800/50 active:bg-gray-800`}
+                                                        >
+                                                            <Text style={tw`text-gray-300 text-sm`}>{node.title}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })()}
                             </ScrollView>
                         </View>
                     ) : (

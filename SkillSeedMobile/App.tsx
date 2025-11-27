@@ -5,6 +5,7 @@ import { Svg, Path } from 'react-native-svg';
 import tw from 'twrnc';
 import { Node, Tag, Difficulty, NodeFormData } from './types';
 import useAsyncStorage from './hooks/useAsyncStorage';
+import { isUnassigned } from './utils';
 import GraphView from './components/GraphView';
 import NodeModal from './components/NodeModal';
 import Sidebar from './components/Sidebar';
@@ -87,7 +88,7 @@ export default function App() {
   const initialData = getInitialData();
   const [nodes, setNodes, nodesLoaded] = useAsyncStorage<Node[]>('skillseed-nodes', initialData.nodes);
   const [tags, setTags, tagsLoaded] = useAsyncStorage<Tag[]>('skillseed-tags', initialData.tags);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null | 'UNASSIGNED'>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,7 +100,7 @@ export default function App() {
     setIsModalOpen(true);
   }, []);
 
-  const handleTagClick = useCallback((tagName: string) => {
+  const handleTagClick = useCallback((tagName: string | 'UNASSIGNED') => {
     setActiveTag(tagName);
     setIsModalOpen(false);
   }, []);
@@ -237,8 +238,50 @@ export default function App() {
     Alert.alert("Import", "Data import functionality coming soon!");
   };
 
-  const visibleTags = activeTag ? tags.filter(t => t.name === activeTag) : tags;
-  const visibleNodes = activeTag ? nodes.filter(n => n.tags.includes(activeTag)) : nodes;
+  const handleDeleteTag = (tagName: string) => {
+    Alert.alert(
+      "Delete Tag",
+      `Are you sure you want to delete "${tagName}"? Nodes with only this tag will become unassigned.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", style: "destructive", onPress: () => {
+            // Remove tag from global tags list
+            setTags((prevTags: Tag[]) => prevTags.filter(t => t.name !== tagName));
+
+            // Update all nodes that reference this tag
+            setNodes((prevNodes: Node[]) => {
+              const updatedNodes = prevNodes.map(node => {
+                if (!node.tags.includes(tagName)) {
+                  return node; // Node doesn't use this tag, skip
+                }
+
+                // Remove the deleted tag from the node's tags array
+                const newTags = node.tags.filter(t => t !== tagName);
+                return { ...node, tags: newTags };
+              });
+
+              // Update tag totals
+              setTimeout(() => updateTags(updatedNodes), 0);
+              return updatedNodes;
+            });
+
+            // If we're currently viewing the deleted tag, go back to overview
+            if (activeTag === tagName) {
+              setActiveTag(null);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? tags.filter(t => t.name === activeTag) : tags;
+  const visibleNodes = activeTag === 'UNASSIGNED'
+    ? nodes.filter(n => isUnassigned(n))
+    : activeTag
+      ? nodes.filter(n => n.tags.includes(activeTag))
+      : nodes;
 
   if (!nodesLoaded || !tagsLoaded) {
     return <View style={tw`flex-1 bg-gray-900 justify-center items-center`}><Text style={tw`text-white`}>Loading...</Text></View>;
@@ -308,6 +351,8 @@ export default function App() {
             handleNodeClick(node);
             setIsSidebarOpen(false);
           }}
+          onTagClick={handleTagClick}
+          onDeleteTag={handleDeleteTag}
           onToggleDifficulty={() => setShowDifficulty(!showDifficulty)}
           difficultyVisible={showDifficulty}
           onReset={handleReset}

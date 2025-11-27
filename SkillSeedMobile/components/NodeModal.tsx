@@ -155,10 +155,6 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
             Alert.alert("Error", "Title is required");
             return;
         }
-        if (selectedTags.length === 0) {
-            Alert.alert("Error", "At least one tag is required");
-            return;
-        }
         onSave({
             title,
             description,
@@ -212,7 +208,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                                     value={tagInput}
                                     onChangeText={setTagInput}
                                     onSubmitEditing={handleTagInputSubmit}
-                                    placeholder={selectedTags.length === 0 ? "Add tags..." : ""}
+                                    placeholder={selectedTags.length === 0 ? "Add tags (optional)..." : ""}
                                     placeholderTextColor="#6b7280"
                                     returnKeyType="done"
                                 />

@@ -5,6 +5,7 @@ import Svg, { Circle, Line, G, Path, Text as SvgText } from 'react-native-svg';
 import * as d3 from 'd3';
 import tw from 'twrnc';
 import { Node, Tag } from '../types';
+import { isUnassigned } from '../utils';
 import { DIFFICULTY_LEVELS } from '../constants';
 
 interface GraphViewProps {
@@ -13,7 +14,7 @@ interface GraphViewProps {
     onNodeClick: (node: Node) => void;
     onTagClick: (tagName: string) => void;
     onBackgroundClick: () => void;
-    activeTag: string | null;
+    activeTag: string | null | 'UNASSIGNED';
     width: number;
     height: number;
 }
@@ -49,11 +50,16 @@ const GraphNode = React.memo(({
     isMobile: boolean;
     nodeRadius: number;
 }) => {
+    // Use neutral gray for unassigned nodes, otherwise use tag color
+    const nodeColor = isUnassigned(node)
+        ? "#94a3b8" // slate-400
+        : (tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1");
+
     return (
         <G transform={`translate(${x || 0}, ${y || 0})`}>
             <Circle
                 r={nodeRadius}
-                fill={tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1"}
+                fill={nodeColor}
                 stroke="#1a202c"
                 strokeWidth={isMobile ? 1.5 : 2}
             />
@@ -114,9 +120,10 @@ const GraphView: React.FC<GraphViewProps> = ({
     const isMobile = width < 640;
     const margin = isMobile ? 25 : 40;
     const radius = Math.min(width, height) / 2 - margin;
+    const unassignedRadius = radius + (isMobile ? 60 : 80); // Outer ring for unassigned nodes
     const centerX = width / 2;
     const centerY = height / 2;
-    const isZoomed = !!activeTag;
+    const isZoomed = !!activeTag && activeTag !== 'UNASSIGNED';
 
     const nodeRadius = isMobile ? 6 : 8;
     const collisionRadius = isMobile ? 10 : 14;
@@ -323,21 +330,37 @@ const GraphView: React.FC<GraphViewProps> = ({
 
     // Initialize Simulation
     useEffect(() => {
-        // Prepare nodes
-        const initialNodes: SimulationNode[] = nodes.map(node => {
-            const angle = (angularScale(node.tags[0]) ?? 0) + angularScale.bandwidth() / 2;
-            const r = (radialScale(node.difficulty) ?? 0) + radialScale.bandwidth() / 2;
+        // Separate unassigned nodes from tagged nodes
+        const unassignedNodes = nodes.filter(isUnassigned);
+        const taggedNodes = nodes.filter(n => !isUnassigned(n));
 
-            // Preserve existing positions if available (from previous sim state) to avoid jumping
-            // For now, we just recalculate or use random. 
-            // In a real app, we might want to merge with existing simNodes.
-            return {
-                ...node,
-                targetX: r * Math.cos(angle - Math.PI / 2),
-                targetY: r * Math.sin(angle - Math.PI / 2),
-                x: isZoomed ? (Math.random() - 0.5) * 50 : (r * Math.cos(angle - Math.PI / 2) + (Math.random() - 0.5) * 10),
-                y: isZoomed ? (Math.random() - 0.5) * 50 : (r * Math.sin(angle - Math.PI / 2) + (Math.random() - 0.5) * 10),
-            };
+        // Prepare nodes
+        const initialNodes: SimulationNode[] = nodes.map((node, index) => {
+            if (isUnassigned(node)) {
+                // Position unassigned nodes on outer ring
+                const unassignedIndex = unassignedNodes.findIndex(n => n.id === node.id);
+                const baseAngle = (2 * Math.PI * unassignedIndex) / Math.max(unassignedNodes.length, 1);
+
+                return {
+                    ...node,
+                    targetX: unassignedRadius * Math.cos(baseAngle - Math.PI / 2),
+                    targetY: unassignedRadius * Math.sin(baseAngle - Math.PI / 2),
+                    x: unassignedRadius * Math.cos(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 10,
+                    y: unassignedRadius * Math.sin(baseAngle - Math.PI / 2) + (Math.random() - 0.5) * 10,
+                };
+            } else {
+                // Tagged nodes use existing sector-based positioning
+                const angle = (angularScale(node.tags[0]) ?? 0) + angularScale.bandwidth() / 2;
+                const r = (radialScale(node.difficulty) ?? 0) + radialScale.bandwidth() / 2;
+
+                return {
+                    ...node,
+                    targetX: r * Math.cos(angle - Math.PI / 2),
+                    targetY: r * Math.sin(angle - Math.PI / 2),
+                    x: isZoomed ? (Math.random() - 0.5) * 50 : (r * Math.cos(angle - Math.PI / 2) + (Math.random() - 0.5) * 10),
+                    y: isZoomed ? (Math.random() - 0.5) * 50 : (r * Math.sin(angle - Math.PI / 2) + (Math.random() - 0.5) * 10),
+                };
+            }
         });
 
         const links = nodes.flatMap(source =>
@@ -357,9 +380,13 @@ const GraphView: React.FC<GraphViewProps> = ({
                 return (radialScale(d.difficulty) ?? 0) + radialScale.bandwidth() / 2;
             }).strength(0.8));
         } else {
+            // Apply different forces for unassigned vs tagged nodes
             simulation
                 .force("x", d3.forceX<SimulationNode>(d => d.targetX!).strength(0.2))
-                .force("y", d3.forceY<SimulationNode>(d => d.targetY!).strength(0.2));
+                .force("y", d3.forceY<SimulationNode>(d => d.targetY!).strength(0.2))
+                .force("radialUnassigned", d3.forceRadial<SimulationNode>(d => {
+                    return isUnassigned(d) ? unassignedRadius : 0;
+                }).strength(d => isUnassigned(d) ? 0.5 : 0));
         }
 
         simulation.on("tick", () => {
@@ -374,7 +401,7 @@ const GraphView: React.FC<GraphViewProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, collisionRadius, angularScale, radialScale]);
+    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale]);
 
     // Links for rendering
     const renderedLinks = useMemo(() => {
@@ -384,16 +411,26 @@ const GraphView: React.FC<GraphViewProps> = ({
         // We can just find source/target in simNodes.
 
         return nodes.flatMap(sourceNode => {
-            // If activeTag is set, only show links where both nodes are in the active tag
-            if (activeTag && !sourceNode.tags.includes(activeTag)) return [];
+            // If activeTag is UNASSIGNED, only show links where both nodes are unassigned
+            if (activeTag === 'UNASSIGNED') {
+                if (!isUnassigned(sourceNode)) return [];
+            } else if (activeTag && !sourceNode.tags.includes(activeTag)) {
+                // If activeTag is set (not UNASSIGNED), only show links where both nodes are in the active tag
+                return [];
+            }
 
             const source = simNodes.find(n => n.id === sourceNode.id);
             if (!source) return [];
 
             return sourceNode.links.map(targetId => {
                 const targetNode = nodes.find(n => n.id === targetId);
-                // Filter target if activeTag is set
-                if (activeTag && targetNode && !targetNode.tags.includes(activeTag)) return null;
+
+                // Filter target based on activeTag
+                if (activeTag === 'UNASSIGNED') {
+                    if (targetNode && !isUnassigned(targetNode)) return null;
+                } else if (activeTag && targetNode && !targetNode.tags.includes(activeTag)) {
+                    return null;
+                }
 
                 const target = simNodes.find(n => n.id === targetId);
                 if (!target) return null;
@@ -480,8 +517,12 @@ const GraphView: React.FC<GraphViewProps> = ({
 
                     {/* Nodes */}
                     {simNodes.map(node => {
-                        // If activeTag is set, only render nodes that belong to it
-                        if (activeTag && !node.tags.includes(activeTag)) return null;
+                        // Filter nodes based on activeTag
+                        if (activeTag === 'UNASSIGNED') {
+                            if (!isUnassigned(node)) return null;
+                        } else if (activeTag && !node.tags.includes(activeTag)) {
+                            return null;
+                        }
 
                         return (
                             <GraphNode
