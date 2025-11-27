@@ -189,29 +189,30 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
 
                     {/* Toolbar */}
                     <View style={tw`px-6 pb-4 flex-col gap-4 border-b border-gray-800`}>
-                        {/* Tags Row */}
-                        <View style={tw`flex-row flex-wrap items-center gap-2`}>
+                        {/* Tags Row - Full Width Container */}
+                        <View style={tw`flex-row flex-wrap items-center gap-2 border border-gray-700 rounded-lg p-2 bg-gray-800`}>
+                            <Text style={tw`text-gray-500 text-sm ml-2`}>#</Text>
                             {selectedTags.map(tagName => {
                                 const tag = allTags.find(t => t.name === tagName);
                                 return (
                                     <TouchableOpacity
                                         key={tagName}
                                         onPress={() => handleRemoveTag(tagName)}
-                                        style={[tw`px-3 py-1.5 rounded-full flex-row items-center`, { backgroundColor: tag?.color || '#6366f1' }]}
+                                        style={[tw`px-3 py-1 rounded-md flex-row items-center`, { backgroundColor: tag?.color || '#6366f1' }]}
                                     >
-                                        <Text style={tw`text-white text-xs font-bold mr-1`}>{tagName}</Text>
+                                        <Text style={tw`text-white text-sm font-medium mr-1`}>{tagName}</Text>
                                         <Text style={tw`text-white text-xs opacity-70`}>×</Text>
                                     </TouchableOpacity>
                                 );
                             })}
 
-                            <View style={tw`relative z-50`}>
+                            <View style={tw`flex-1 relative z-50`}>
                                 <TextInput
-                                    style={tw`bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm min-w-24`}
+                                    style={tw`text-white px-2 py-1 text-sm min-w-24`}
                                     value={tagInput}
                                     onChangeText={setTagInput}
                                     onSubmitEditing={handleTagInputSubmit}
-                                    placeholder="# Add tags..."
+                                    placeholder={selectedTags.length === 0 ? "Add tags..." : ""}
                                     placeholderTextColor="#6b7280"
                                     returnKeyType="done"
                                 />
@@ -233,24 +234,26 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                         </View>
 
                         {/* Controls Row: Difficulty & View Toggle */}
-                        <View style={tw`flex-row justify-between items-center`}>
-                            <View style={tw`relative z-40`}>
+                        <View style={tw`flex-row justify-between items-center gap-4`}>
+                            <View style={tw`flex-1 relative z-40`}>
                                 <TouchableOpacity
                                     onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
-                                    style={tw`flex-row bg-gray-800 rounded-lg items-center px-3 py-2 border border-gray-700`}
+                                    style={tw`flex-row bg-gray-800 rounded-lg items-center justify-between px-4 py-3 border border-gray-700`}
                                 >
-                                    <Text style={tw`text-gray-400 text-xs mr-2 font-medium tracking-wide`}>DIFFICULTY</Text>
-                                    <Text style={[
-                                        tw`text-xs font-bold mr-2`,
-                                        difficulty === Difficulty.Easy ? tw`text-green-400` :
-                                            difficulty === Difficulty.Medium ? tw`text-yellow-400` :
-                                                tw`text-red-400`
-                                    ]}>{difficulty}</Text>
-                                    <Text style={tw`text-gray-500 text-[10px]`}>▼</Text>
+                                    <View style={tw`flex-row items-center`}>
+                                        <Text style={tw`text-gray-400 text-sm mr-3 font-medium tracking-wide`}>DIFF:</Text>
+                                        <Text style={[
+                                            tw`text-sm font-bold`,
+                                            difficulty === Difficulty.Easy ? tw`text-green-400` :
+                                                difficulty === Difficulty.Medium ? tw`text-yellow-400` :
+                                                    tw`text-red-400`
+                                        ]}>{difficulty}</Text>
+                                    </View>
+                                    <Text style={tw`text-gray-500 text-xs`}>▼</Text>
                                 </TouchableOpacity>
 
                                 {showDifficultyDropdown && (
-                                    <View style={tw`absolute top-10 left-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-40 overflow-hidden`}>
+                                    <View style={tw`absolute top-12 left-0 right-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden`}>
                                         {DIFFICULTY_LEVELS.map(diff => (
                                             <TouchableOpacity
                                                 key={diff}
@@ -270,13 +273,13 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                             <View style={tw`flex-row bg-gray-800 p-1 rounded-lg border border-gray-700`}>
                                 <TouchableOpacity
                                     onPress={() => setIsPreview(false)}
-                                    style={[tw`p-2 rounded-md`, !isPreview && tw`bg-gray-700`]}
+                                    style={[tw`p-2.5 rounded-md`, !isPreview && tw`bg-gray-700`]}
                                 >
                                     <PencilIcon color={!isPreview ? "#ffffff" : "#6b7280"} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setIsPreview(true)}
-                                    style={[tw`p-2 rounded-md`, isPreview && tw`bg-gray-700`]}
+                                    style={[tw`p-2.5 rounded-md`, isPreview && tw`bg-gray-700`]}
                                 >
                                     <EyeIcon color={isPreview ? "#ffffff" : "#6b7280"} />
                                 </TouchableOpacity>
