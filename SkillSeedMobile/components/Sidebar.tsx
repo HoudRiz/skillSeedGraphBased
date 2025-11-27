@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import tw from 'twrnc';
 import { Node, Tag, Difficulty } from '../types';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
@@ -19,9 +19,9 @@ const SearchIcon = () => (
     </Svg>
 );
 
-const ChevronDownIcon = () => (
+const ChevronRightIcon = () => (
     <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Polyline points="6 9 12 15 18 9" />
+        <Polyline points="9 18 15 12 9 6" />
     </Svg>
 );
 
@@ -138,177 +138,185 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!isOpen) return null;
 
     return (
-        <View style={tw`absolute top-0 left-0 bottom-0 w-80 bg-gray-900 z-50 shadow-2xl border-r border-gray-800`}>
-            {/* Header */}
-            <View style={tw`flex-row items-center justify-between p-4 border-b border-gray-800`}>
-                <Text style={tw`text-xl font-bold text-white`}>Menu</Text>
-                <TouchableOpacity onPress={onClose} style={tw`p-2`}>
-                    <Text style={tw`text-gray-400`}><CloseIcon /></Text>
-                </TouchableOpacity>
-            </View>
+        <>
+            {/* Overlay for outside click */}
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={tw`absolute top-0 left-0 right-0 bottom-0 bg-black/50 z-40`} />
+            </TouchableWithoutFeedback>
 
-            {/* Tabs */}
-            <View style={tw`flex-row border-b border-gray-800`}>
-                <TouchableOpacity
-                    onPress={() => setActiveTab('Notes')}
-                    style={[tw`flex-1 py-3 items-center`, activeTab === 'Notes' && tw`border-b-2 border-indigo-500`]}
-                >
-                    <Text style={[tw`font-medium`, activeTab === 'Notes' ? tw`text-white` : tw`text-gray-500`]}>Notes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => setActiveTab('Settings')}
-                    style={[tw`flex-1 py-3 items-center`, activeTab === 'Settings' && tw`border-b-2 border-indigo-500`]}
-                >
-                    <Text style={[tw`font-medium`, activeTab === 'Settings' ? tw`text-white` : tw`text-gray-500`]}>Settings</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Sidebar */}
+            <View style={tw`absolute top-0 left-0 bottom-0 w-80 bg-gray-900 z-50 shadow-2xl border-r border-gray-800`}>
+                {/* Header */}
+                <View style={tw`flex-row items-center justify-between p-4 border-b border-gray-800`}>
+                    <Text style={tw`text-xl font-bold text-white`}>Menu</Text>
+                </View>
 
-            {/* Content */}
-            <View style={tw`flex-1`}>
-                {activeTab === 'Notes' ? (
-                    <View style={tw`flex-1`}>
-                        {/* Search & Filter */}
-                        <View style={tw`p-4 gap-3 border-b border-gray-800`}>
-                            <View style={tw`flex-row items-center bg-gray-800 rounded-lg px-3 py-2 border border-gray-700`}>
-                                <Text style={tw`text-gray-500 mr-2`}><SearchIcon /></Text>
-                                <TextInput
-                                    style={tw`flex-1 text-white text-sm`}
-                                    placeholder="Search notes..."
-                                    placeholderTextColor="#6b7280"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                />
-                            </View>
+                {/* Tabs */}
+                <View style={tw`flex-row border-b border-gray-800`}>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('Notes')}
+                        style={[tw`flex-1 py-3 items-center`, activeTab === 'Notes' && tw`border-b-2 border-indigo-500`]}
+                    >
+                        <Text style={[tw`font-medium`, activeTab === 'Notes' ? tw`text-white` : tw`text-gray-500`]}>Notes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('Settings')}
+                        style={[tw`flex-1 py-3 items-center`, activeTab === 'Settings' && tw`border-b-2 border-indigo-500`]}
+                    >
+                        <Text style={[tw`font-medium`, activeTab === 'Settings' ? tw`text-white` : tw`text-gray-500`]}>Settings</Text>
+                    </TouchableOpacity>
+                </View>
 
-                            <View style={tw`relative z-20`}>
-                                <TouchableOpacity
-                                    onPress={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                                    style={tw`flex-row items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700`}
-                                >
-                                    <Text style={tw`text-gray-300 text-sm`}>{sortBy}</Text>
-                                    <Text style={tw`text-gray-500`}><ChevronDownIcon /></Text>
-                                </TouchableOpacity>
-                                {isSortDropdownOpen && (
-                                    <View style={tw`absolute top-10 left-0 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden`}>
-                                        {[
-                                            'Name (A-Z)', 'Name (Z-A)',
-                                            'Newest First', 'Oldest First',
-                                            'Difficulty (Easy→Hard)', 'Difficulty (Hard→Easy)'
-                                        ].map((option) => (
-                                            <TouchableOpacity
-                                                key={option}
-                                                onPress={() => {
-                                                    setSortBy(option as SortOption);
-                                                    setIsSortDropdownOpen(false);
-                                                }}
-                                                style={tw`px-3 py-2 border-b border-gray-700 active:bg-gray-700`}
-                                            >
-                                                <Text style={[tw`text-sm`, sortBy === option ? tw`text-indigo-400 font-bold` : tw`text-gray-300`]}>
-                                                    {option}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
-                            </View>
-                        </View>
+                {/* Content */}
+                <View style={tw`flex-1`}>
+                    {activeTab === 'Notes' ? (
+                        <View style={tw`flex-1`}>
+                            {/* Search & Filter */}
+                            <View style={tw`p-4 gap-3 border-b border-gray-800`}>
+                                <View style={tw`flex-row items-center bg-gray-800 rounded-lg px-3 py-2 border border-gray-700`}>
+                                    <Text style={tw`text-gray-500 mr-2`}><SearchIcon /></Text>
+                                    <TextInput
+                                        style={tw`flex-1 text-white text-sm`}
+                                        placeholder="Search notes..."
+                                        placeholderTextColor="#6b7280"
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                    />
+                                </View>
 
-                        {/* List */}
-                        <ScrollView style={tw`flex-1`}>
-                            {tags.map(tag => {
-                                const tagNodes = groupedNodes[tag.name] || [];
-                                if (tagNodes.length === 0) return null;
-
-                                const isExpanded = expandedTags.has(tag.name);
-
-                                return (
-                                    <View key={tag.name} style={tw`border-b border-gray-800`}>
+                                <View>
+                                    <Text style={tw`text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider`}>Sort By</Text>
+                                    <View style={tw`relative z-20`}>
                                         <TouchableOpacity
-                                            onPress={() => toggleTag(tag.name)}
-                                            style={tw`flex-row items-center justify-between p-4 bg-gray-900 active:bg-gray-800`}
+                                            onPress={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                                            style={tw`flex-row items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700`}
                                         >
-                                            <View style={tw`flex-row items-center`}>
-                                                <View style={[tw`w-3 h-3 rounded-full mr-3`, { backgroundColor: tag.color }]} />
-                                                <Text style={tw`text-white font-bold text-sm`}>{tag.name}</Text>
-                                                <View style={tw`ml-2 bg-gray-800 px-2 py-0.5 rounded-full`}>
-                                                    <Text style={tw`text-gray-400 text-xs`}>{tagNodes.length}</Text>
-                                                </View>
-                                            </View>
-                                            <Text style={[tw`text-gray-500`, { transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }]}><ChevronDownIcon /></Text>
+                                            <Text style={tw`text-gray-300 text-sm`}>{sortBy}</Text>
+                                            <Text style={tw`text-gray-500`}><ChevronRightIcon /></Text>
                                         </TouchableOpacity>
-
-                                        {isExpanded && (
-                                            <View style={tw`bg-gray-900/50`}>
-                                                {tagNodes.map(node => (
+                                        {isSortDropdownOpen && (
+                                            <View style={tw`absolute top-10 left-0 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden`}>
+                                                {[
+                                                    'Name (A-Z)', 'Name (Z-A)',
+                                                    'Newest First', 'Oldest First',
+                                                    'Difficulty (Easy→Hard)', 'Difficulty (Hard→Easy)'
+                                                ].map((option) => (
                                                     <TouchableOpacity
-                                                        key={node.id}
+                                                        key={option}
                                                         onPress={() => {
-                                                            onNodeClick(node);
-                                                            onClose();
+                                                            setSortBy(option as SortOption);
+                                                            setIsSortDropdownOpen(false);
                                                         }}
-                                                        style={tw`pl-10 pr-4 py-3 border-t border-gray-800/50 active:bg-gray-800`}
+                                                        style={tw`px-3 py-2 border-b border-gray-700 active:bg-gray-700`}
                                                     >
-                                                        <Text style={tw`text-gray-300 text-sm`}>{node.title}</Text>
+                                                        <Text style={[tw`text-sm`, sortBy === option ? tw`text-indigo-400 font-bold` : tw`text-gray-300`]}>
+                                                            {option}
+                                                        </Text>
                                                     </TouchableOpacity>
                                                 ))}
                                             </View>
                                         )}
                                     </View>
-                                );
-                            })}
-                        </ScrollView>
-                    </View>
-                ) : (
-                    <View style={tw`flex-1 p-4`}>
-                        <Text style={tw`text-gray-500 text-xs font-bold mb-4 uppercase tracking-wider`}>Visuals</Text>
-                        <View style={tw`flex-row items-center justify-between bg-gray-800 p-4 rounded-lg border border-gray-700 mb-8`}>
-                            <Text style={tw`text-white font-bold`}>Toggle Difficulty</Text>
-                            <Switch
-                                value={difficultyVisible}
-                                onValueChange={onToggleDifficulty}
-                                trackColor={{ false: "#374151", true: "#6366f1" }}
-                                thumbColor={difficultyVisible ? "#ffffff" : "#9ca3af"}
-                            />
-                        </View>
-
-                        <Text style={tw`text-gray-500 text-xs font-bold mb-4 uppercase tracking-wider`}>Data Management</Text>
-                        <View style={tw`bg-gray-800 rounded-lg border border-gray-700 overflow-hidden mb-8`}>
-                            <TouchableOpacity
-                                onPress={onExport}
-                                style={tw`flex-row items-center p-4 border-b border-gray-700 active:bg-gray-700`}
-                            >
-                                <Text style={tw`text-indigo-400 mr-4`}><DownloadIcon /></Text>
-                                <View>
-                                    <Text style={tw`text-white font-bold`}>Export Data</Text>
-                                    <Text style={tw`text-gray-400 text-xs`}>Download graph as JSON</Text>
                                 </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={onImport}
-                                style={tw`flex-row items-center p-4 active:bg-gray-700`}
-                            >
-                                <Text style={tw`text-indigo-400 mr-4`}><UploadIcon /></Text>
-                                <View>
-                                    <Text style={tw`text-white font-bold`}>Import Data</Text>
-                                    <Text style={tw`text-gray-400 text-xs`}>Restore from JSON file</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity
-                            onPress={onReset}
-                            style={tw`flex-row items-center bg-red-900/20 p-4 rounded-lg border border-red-900/50 active:bg-red-900/30`}
-                        >
-                            <Text style={tw`text-red-400 mr-4`}><TrashIcon /></Text>
-                            <View>
-                                <Text style={tw`text-red-400 font-bold`}>Reset Everything</Text>
-                                <Text style={tw`text-red-400/70 text-xs`}>Clear all local data</Text>
                             </View>
-                        </TouchableOpacity>
-                    </View>
-                )}
+
+                            {/* List */}
+                            <ScrollView style={tw`flex-1`}>
+                                {tags.map(tag => {
+                                    const tagNodes = groupedNodes[tag.name] || [];
+                                    if (tagNodes.length === 0) return null;
+
+                                    const isExpanded = expandedTags.has(tag.name);
+
+                                    return (
+                                        <View key={tag.name} style={tw`border-b border-gray-800`}>
+                                            <TouchableOpacity
+                                                onPress={() => toggleTag(tag.name)}
+                                                style={tw`flex-row items-center justify-between p-4 bg-gray-900 active:bg-gray-800`}
+                                            >
+                                                <View style={tw`flex-row items-center`}>
+                                                    <View style={[tw`w-3 h-3 rounded-full mr-3`, { backgroundColor: tag.color }]} />
+                                                    <Text style={tw`text-white font-bold text-sm`}>{tag.name}</Text>
+                                                    <View style={tw`ml-2 bg-gray-800 px-2 py-0.5 rounded-full`}>
+                                                        <Text style={tw`text-gray-400 text-xs`}>{tagNodes.length}</Text>
+                                                    </View>
+                                                </View>
+                                                <Text style={tw`text-gray-500`}><ChevronRightIcon /></Text>
+                                            </TouchableOpacity>
+
+                                            {isExpanded && (
+                                                <View style={tw`bg-gray-900/50`}>
+                                                    {tagNodes.map(node => (
+                                                        <TouchableOpacity
+                                                            key={node.id}
+                                                            onPress={() => {
+                                                                onNodeClick(node);
+                                                                onClose();
+                                                            }}
+                                                            style={tw`pl-10 pr-4 py-3 border-t border-gray-800/50 active:bg-gray-800`}
+                                                        >
+                                                            <Text style={tw`text-gray-300 text-sm`}>{node.title}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+                    ) : (
+                        <View style={tw`flex-1 p-4`}>
+                            <Text style={tw`text-gray-500 text-xs font-bold mb-4 uppercase tracking-wider`}>Visuals</Text>
+                            <View style={tw`flex-row items-center justify-between bg-gray-800 p-4 rounded-lg border border-gray-700 mb-8`}>
+                                <Text style={tw`text-white font-bold`}>Toggle Difficulty</Text>
+                                <Switch
+                                    value={difficultyVisible}
+                                    onValueChange={onToggleDifficulty}
+                                    trackColor={{ false: "#374151", true: "#6366f1" }}
+                                    thumbColor={difficultyVisible ? "#ffffff" : "#9ca3af"}
+                                />
+                            </View>
+
+                            <Text style={tw`text-gray-500 text-xs font-bold mb-4 uppercase tracking-wider`}>Data Management</Text>
+                            <View style={tw`bg-gray-800 rounded-lg border border-gray-700 overflow-hidden mb-8`}>
+                                <TouchableOpacity
+                                    onPress={onExport}
+                                    style={tw`flex-row items-center p-4 border-b border-gray-700 active:bg-gray-700`}
+                                >
+                                    <Text style={tw`text-indigo-400 mr-4`}><DownloadIcon /></Text>
+                                    <View>
+                                        <Text style={tw`text-white font-bold`}>Export Data</Text>
+                                        <Text style={tw`text-gray-400 text-xs`}>Download graph as JSON</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={onImport}
+                                    style={tw`flex-row items-center p-4 active:bg-gray-700`}
+                                >
+                                    <Text style={tw`text-indigo-400 mr-4`}><UploadIcon /></Text>
+                                    <View>
+                                        <Text style={tw`text-white font-bold`}>Import Data</Text>
+                                        <Text style={tw`text-gray-400 text-xs`}>Restore from JSON file</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={onReset}
+                                style={tw`flex-row items-center bg-red-900/20 p-4 rounded-lg border border-red-900/50 active:bg-red-900/30`}
+                            >
+                                <Text style={tw`text-red-400 mr-4`}><TrashIcon /></Text>
+                                <View>
+                                    <Text style={tw`text-red-400 font-bold`}>Reset Everything</Text>
+                                    <Text style={tw`text-red-400/70 text-xs`}>Clear all local data</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
             </View>
-        </View>
+        </>
     );
 };
 
