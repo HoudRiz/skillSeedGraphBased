@@ -7,6 +7,7 @@ import { Node, Tag, Difficulty, NodeFormData } from './types';
 import useAsyncStorage from './hooks/useAsyncStorage';
 import GraphView from './components/GraphView';
 import NodeModal from './components/NodeModal';
+import Sidebar from './components/Sidebar';
 
 import { XP_MAP, TAG_COLORS } from './constants';
 
@@ -89,6 +90,8 @@ export default function App() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showDifficulty, setShowDifficulty] = useState(true);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   const handleNodeClick = useCallback((node: Node) => {
@@ -208,6 +211,32 @@ export default function App() {
     );
   };
 
+  const handleReset = () => {
+    Alert.alert(
+      "Reset Everything",
+      "Are you sure? This will delete all your data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset", style: "destructive", onPress: () => {
+            const initial = getInitialData();
+            setNodes(initial.nodes);
+            setTags(initial.tags);
+            setIsSidebarOpen(false);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleExport = () => {
+    Alert.alert("Export", "Data export functionality coming soon!");
+  };
+
+  const handleImport = () => {
+    Alert.alert("Import", "Data import functionality coming soon!");
+  };
+
   const visibleTags = activeTag ? tags.filter(t => t.name === activeTag) : tags;
   const visibleNodes = activeTag ? nodes.filter(n => n.tags.includes(activeTag)) : nodes;
 
@@ -220,8 +249,15 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       <View style={tw`relative flex-1`}>
         <View style={tw`absolute top-4 left-4 z-10 max-w-[70%]`}>
-          <Text style={tw`text-xl font-bold text-white tracking-wider`}>SkillSeed Graph</Text>
-          <Text style={tw`text-gray-400 text-xs hidden sm:flex`}>Visualize your knowledge growth.</Text>
+          <TouchableOpacity
+            onPress={() => setIsSidebarOpen(true)}
+            style={tw`bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-lg`}
+          >
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M3 12h18M3 6h18M3 18h18" />
+            </Svg>
+          </TouchableOpacity>
+
           {activeTag && (
             <TouchableOpacity
               onPress={() => setActiveTag(null)}
@@ -261,6 +297,22 @@ export default function App() {
           nodeToEdit={selectedNode}
           allTags={tags}
           allNodes={nodes}
+        />
+
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          nodes={nodes}
+          tags={tags}
+          onNodeClick={(node) => {
+            handleNodeClick(node);
+            setIsSidebarOpen(false);
+          }}
+          onToggleDifficulty={() => setShowDifficulty(!showDifficulty)}
+          difficultyVisible={showDifficulty}
+          onReset={handleReset}
+          onExport={handleExport}
+          onImport={handleImport}
         />
       </View>
     </SafeAreaView>
