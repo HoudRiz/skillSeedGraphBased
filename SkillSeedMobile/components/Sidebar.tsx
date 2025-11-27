@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, 
 import tw from 'twrnc';
 import { Node, Tag, Difficulty } from '../types';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Icons
 const CloseIcon = () => (
@@ -85,17 +86,44 @@ const Sidebar: React.FC<SidebarProps> = ({
     const slideAnim = useRef(new Animated.Value(-320)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
+    // Load expanded tags from storage on mount
+    useEffect(() => {
+        const loadExpandedTags = async () => {
+            try {
+                const stored = await AsyncStorage.getItem('sidebar-expanded-tags');
+                if (stored) {
+                    setExpandedTags(new Set(JSON.parse(stored)));
+                }
+            } catch (error) {
+                console.error('Failed to load expanded tags:', error);
+            }
+        };
+        loadExpandedTags();
+    }, []);
+
+    // Save expanded tags to storage whenever they change
+    useEffect(() => {
+        const saveExpandedTags = async () => {
+            try {
+                await AsyncStorage.setItem('sidebar-expanded-tags', JSON.stringify(Array.from(expandedTags)));
+            } catch (error) {
+                console.error('Failed to save expanded tags:', error);
+            }
+        };
+        saveExpandedTags();
+    }, [expandedTags]);
+
     useEffect(() => {
         if (isOpen) {
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: 0,
-                    duration: 300,
+                    duration: 250,
                     useNativeDriver: true,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 1,
-                    duration: 300,
+                    duration: 250,
                     useNativeDriver: true,
                 })
             ]).start();
@@ -103,12 +131,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: -320,
-                    duration: 250,
+                    duration: 200,
                     useNativeDriver: true,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 0,
-                    duration: 250,
+                    duration: 200,
                     useNativeDriver: true,
                 })
             ]).start();
@@ -183,7 +211,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* Sidebar */}
             <Animated.View style={[tw`absolute top-0 left-0 bottom-0 w-80 bg-gray-900 z-50 shadow-2xl border-r border-gray-800`, { transform: [{ translateX: slideAnim }] }]}>
                 {/* Header */}
-                <View style={tw`flex-row items-center justify-between p-4 border-b border-gray-800`}>
+                <View style={tw`flex-row items-center justify-between p-4 pt-6 border-b border-gray-800`}>
                     <Text style={tw`text-xl font-bold text-white`}>Menu</Text>
                 </View>
 
@@ -220,14 +248,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     />
                                 </View>
 
-                                <View>
-                                    <Text style={tw`text-gray-500 text-xs font-bold mb-2 uppercase tracking-wider`}>Sort By</Text>
-                                    <View style={tw`relative z-20`}>
+                                <View style={tw`flex-row items-center gap-2`}>
+                                    <Text style={tw`text-gray-500 text-xs font-bold uppercase tracking-wider`}>Sort By</Text>
+                                    <View style={tw`flex-1 relative z-20`}>
                                         <TouchableOpacity
                                             onPress={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
                                             style={tw`flex-row items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700`}
                                         >
-                                            <Text style={tw`text-gray-300 text-sm`}>{sortBy}</Text>
+                                            <Text style={tw`text-gray-300 text-xs`}>{sortBy}</Text>
                                             <Text style={tw`text-gray-500`}><ChevronRightIcon /></Text>
                                         </TouchableOpacity>
                                         {isSortDropdownOpen && (
@@ -245,7 +273,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         }}
                                                         style={tw`px-3 py-2 border-b border-gray-700 active:bg-gray-700`}
                                                     >
-                                                        <Text style={[tw`text-sm`, sortBy === option ? tw`text-indigo-400 font-bold` : tw`text-gray-300`]}>
+                                                        <Text style={[tw`text-xs`, sortBy === option ? tw`text-indigo-400 font-bold` : tw`text-gray-300`]}>
                                                             {option}
                                                         </Text>
                                                     </TouchableOpacity>

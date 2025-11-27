@@ -248,7 +248,7 @@ export default function App() {
     <SafeAreaView style={tw`flex-1 bg-gray-900`}>
       <StatusBar barStyle="light-content" />
       <View style={tw`relative flex-1`}>
-        <View style={tw`absolute top-4 left-4 z-10 max-w-[70%]`}>
+        <View style={tw`absolute top-6 left-4 z-10 max-w-[70%]`}>
           <TouchableOpacity
             onPress={() => setIsSidebarOpen(true)}
             style={tw`bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-lg`}
