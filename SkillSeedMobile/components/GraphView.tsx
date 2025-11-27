@@ -32,84 +32,20 @@ const getDistance = (touches: any[]) => {
     return Math.sqrt(dx * dx + dy * dy);
 };
 
-// GraphNode Component
+// GraphNode Component - Purely presentational now
 const GraphNode = React.memo(({
     node,
-    simulation,
-    onNodeClick,
-    scale,
     tags,
     isMobile,
     nodeRadius
 }: {
     node: SimulationNode;
-    simulation: d3.Simulation<SimulationNode, undefined> | null;
-    onNodeClick: (node: Node) => void;
-    scale: number;
     tags: Tag[];
     isMobile: boolean;
     nodeRadius: number;
 }) => {
-    // Use refs to keep track of latest props without re-creating PanResponder
-    const nodeRef = useRef(node);
-    const simulationRef = useRef(simulation);
-    const scaleRef = useRef(scale);
-    const onNodeClickRef = useRef(onNodeClick);
-
-    // Update refs on every render
-    useEffect(() => {
-        nodeRef.current = node;
-        simulationRef.current = simulation;
-        scaleRef.current = scale;
-        onNodeClickRef.current = onNodeClick;
-    }, [node, simulation, scale, onNodeClick]);
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {
-                const sim = simulationRef.current;
-                const n = nodeRef.current;
-                if (!sim) return;
-
-                sim.alphaTarget(0.3).restart();
-                (n as any)._dragStartX = n.x;
-                (n as any)._dragStartY = n.y;
-                n.fx = n.x;
-                n.fy = n.y;
-            },
-            onPanResponderMove: (event, gestureState) => {
-                const sim = simulationRef.current;
-                const n = nodeRef.current;
-                const s = scaleRef.current;
-                if (!sim) return;
-
-                const startX = (n as any)._dragStartX || 0;
-                const startY = (n as any)._dragStartY || 0;
-                n.fx = startX + gestureState.dx / s;
-                n.fy = startY + gestureState.dy / s;
-                sim.restart();
-            },
-            onPanResponderRelease: (e, gestureState) => {
-                const sim = simulationRef.current;
-                const n = nodeRef.current;
-                if (!sim) return;
-
-                if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5) {
-                    onNodeClickRef.current(n);
-                }
-                n.fx = null;
-                n.fy = null;
-                sim.alphaTarget(0);
-            },
-        })
-    ).current;
-
     return (
-        <G
-            transform={`translate(${node.x || 0}, ${node.y || 0})`}
-            {...panResponder.panHandlers}
-        >
+        <G transform={`translate(${node.x || 0}, ${node.y || 0})`}>
             <Circle
                 r={nodeRadius}
                 fill={tags.find(t => t.name === node.tags[0])?.color || "#cbd5e1"}
@@ -147,23 +83,107 @@ const GraphView: React.FC<GraphViewProps> = ({
     const lastDistance = useRef<number | null>(null);
     const transformRef = useRef(transform);
     const onBackgroundClickRef = useRef(onBackgroundClick);
+    const onNodeClickRef = useRef(onNodeClick);
+    const simNodesRef = useRef<SimulationNode[]>([]);
+    const activeTagRef = useRef(activeTag);
+    const dimensionsRef = useRef({ width, height });
 
+    // Dragging state
+    const draggingNode = useRef<SimulationNode | null>(null);
+    const dragStartPos = useRef<{ x: number, y: number } | null>(null);
+
+    // Update refs
     // Update refs
     useEffect(() => {
         transformRef.current = transform;
         onBackgroundClickRef.current = onBackgroundClick;
-    }, [transform, onBackgroundClick]);
+        onNodeClickRef.current = onNodeClick;
+        activeTagRef.current = activeTag;
+        dimensionsRef.current = { width, height };
+    }, [transform, onBackgroundClick, onNodeClick, activeTag, width, height]);
 
     // We use a ref to keep track of the simulation instance
     const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
 
-    const bgPanResponder = useRef(
+    const isMobile = width < 640;
+    const margin = isMobile ? 25 : 40;
+    const radius = Math.min(width, height) / 2 - margin;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const isZoomed = !!activeTag;
+
+    const nodeRadius = isMobile ? 6 : 8;
+    const collisionRadius = isMobile ? 10 : 14;
+
+    // Helper to find node at coordinates
+    const findNodeAt = (x: number, y: number) => {
+        // Use refs to get latest values inside PanResponder closure
+        const { width, height } = dimensionsRef.current;
+        const cx = width / 2;
+        const cy = height / 2;
+        const isMobile = width < 640;
+        const nodeRadius = isMobile ? 6 : 8;
+
+        // Convert screen coordinates to graph coordinates
+        // transform: translate(centerX + tx, centerY + ty) scale(k)
+        // screenX = (graphX * k) + centerX + tx
+        // graphX = (screenX - centerX - tx) / k
+
+        const tx = transformRef.current.x;
+        const ty = transformRef.current.y;
+        const k = transformRef.current.k;
+
+        const graphX = (x - cx - tx) / k;
+        const graphY = (y - cy - ty) / k;
+
+        // Use a larger hit radius for easier grabbing
+        const hitRadius = nodeRadius * 3;
+
+        const currentSimNodes = simNodesRef.current;
+        const currentActiveTag = activeTagRef.current;
+
+        // Search in reverse order (top-most rendered node first)
+        for (let i = currentSimNodes.length - 1; i >= 0; i--) {
+            const node = currentSimNodes[i];
+            // Skip nodes not in active tag if zoomed
+            if (currentActiveTag && !node.tags.includes(currentActiveTag)) continue;
+
+            const dx = graphX - (node.x || 0);
+            const dy = graphY - (node.y || 0);
+            if (dx * dx + dy * dy < hitRadius * hitRadius) {
+                return node;
+            }
+        }
+        return null;
+    };
+
+    const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (evt) => {
-                lastTransform.current = transformRef.current;
                 const touches = evt.nativeEvent.touches;
+                const { locationX, locationY } = evt.nativeEvent;
+
+                // Check if we hit a node first (only for single touch)
+                if (touches.length === 1) {
+                    const node = findNodeAt(locationX, locationY);
+                    if (node && simulationRef.current) {
+                        draggingNode.current = node;
+                        dragStartPos.current = { x: locationX, y: locationY };
+
+                        // Fix the node
+                        node.fx = node.x;
+                        node.fy = node.y;
+
+                        // Restart simulation with low alpha to allow movement but keep others stable
+                        simulationRef.current.alphaTarget(0.3).restart();
+                        return;
+                    }
+                }
+
+                // If no node hit, or multi-touch, handle background
+                lastTransform.current = transformRef.current;
                 if (touches.length === 2) {
                     lastDistance.current = getDistance(touches);
                 } else {
@@ -172,6 +192,42 @@ const GraphView: React.FC<GraphViewProps> = ({
             },
             onPanResponderMove: (evt, gestureState) => {
                 const touches = evt.nativeEvent.touches;
+
+                // Handle Node Dragging
+                if (draggingNode.current && simulationRef.current) {
+                    const k = transformRef.current.k;
+                    // Calculate delta in graph coordinates
+                    // We need to use the initial drag start position to avoid accumulation errors
+                    // But simpler is just adding delta to current fx/fy
+
+                    // Actually, better to just update fx/fy based on gestureState.dx/dy
+                    // The node was fixed at grant.
+                    // New pos = Start pos + delta / k
+
+                    // We need the node's position at start of drag. 
+                    // Since we didn't store it, we can just use incremental updates if we are careful,
+                    // OR better: store initial node pos.
+                    // Let's rely on the fact that fx/fy are set.
+
+                    // Wait, gestureState.dx is total accumulated distance since grant.
+                    // So we need the ORIGINAL fx/fy at grant.
+                    // Let's just use the current mouse position mapped to graph space.
+
+                    const { locationX, locationY } = evt.nativeEvent;
+                    const tx = transformRef.current.x;
+                    const ty = transformRef.current.y;
+                    const { width, height } = dimensionsRef.current;
+                    const cx = width / 2;
+                    const cy = height / 2;
+
+                    draggingNode.current.fx = (locationX - cx - tx) / k;
+                    draggingNode.current.fy = (locationY - cy - ty) / k;
+
+                    simulationRef.current.restart();
+                    return;
+                }
+
+                // Handle Background Pan/Zoom
 
                 // Handle transition from 1 to 2 fingers
                 if (touches.length === 2 && lastDistance.current === null) {
@@ -201,25 +257,32 @@ const GraphView: React.FC<GraphViewProps> = ({
                 }
             },
             onPanResponderRelease: (evt, gestureState) => {
+                if (draggingNode.current && simulationRef.current) {
+                    // Check for click (minimal movement)
+                    const dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
+                    if (dist < 5) {
+                        onNodeClickRef.current(draggingNode.current);
+                    }
+
+                    // Release node
+                    draggingNode.current.fx = null;
+                    draggingNode.current.fy = null;
+                    draggingNode.current = null;
+                    dragStartPos.current = null;
+
+                    // Cool down simulation
+                    simulationRef.current.alphaTarget(0);
+                    return;
+                }
+
                 if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5 && !lastDistance.current) {
                     onBackgroundClickRef.current();
                 }
                 lastDistance.current = null;
-                // Update lastTransform on release so next gesture starts from here
                 lastTransform.current = transformRef.current;
             }
         })
     ).current;
-
-    const isMobile = width < 640;
-    const margin = isMobile ? 25 : 40;
-    const radius = Math.min(width, height) / 2 - margin;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const isZoomed = !!activeTag;
-
-    const nodeRadius = isMobile ? 6 : 8;
-    const collisionRadius = isMobile ? 10 : 14;
 
     // Scales
     const radialScale = useMemo(() => d3.scaleBand<string>()
@@ -294,6 +357,8 @@ const GraphView: React.FC<GraphViewProps> = ({
         }
 
         simulation.on("tick", () => {
+            // Update ref for immediate access in PanResponder
+            simNodesRef.current = initialNodes;
             // Create a new array to trigger re-render
             setSimNodes([...initialNodes]);
         });
@@ -331,13 +396,8 @@ const GraphView: React.FC<GraphViewProps> = ({
         });
     }, [simNodes, nodes, activeTag]);
 
-    // Pan/Zoom State (Simple implementation)
-    // For now, we just center the graph. 
-    // Implementing full d3-zoom in RN is complex without a library like d3-zoom-handler-rn or using PanResponder + scale.
-    // We'll stick to static centered view for MVP.
-
     return (
-        <View style={{ width, height, overflow: 'hidden' }} {...bgPanResponder.panHandlers}>
+        <View style={{ width, height, overflow: 'hidden' }} {...panResponder.panHandlers}>
             <Svg width={width} height={height}>
                 <G transform={`translate(${centerX + transform.x}, ${centerY + transform.y}) scale(${transform.k})`}>
                     {/* Background Sectors */}
@@ -421,9 +481,6 @@ const GraphView: React.FC<GraphViewProps> = ({
                             <GraphNode
                                 key={node.id}
                                 node={node}
-                                simulation={simulationRef.current}
-                                onNodeClick={onNodeClick}
-                                scale={transform.k}
                                 tags={tags}
                                 isMobile={isMobile}
                                 nodeRadius={nodeRadius}
