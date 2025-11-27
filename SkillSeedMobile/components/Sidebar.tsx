@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import tw from 'twrnc';
 import { Node, Tag, Difficulty } from '../types';
@@ -82,6 +82,38 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set(tags.map(t => t.name)));
 
     const { height } = Dimensions.get('window');
+    const slideAnim = useRef(new Animated.Value(-320)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isOpen) {
+            Animated.parallel([
+                Animated.timing(slideAnim, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        } else {
+            Animated.parallel([
+                Animated.timing(slideAnim, {
+                    toValue: -320,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        }
+    }, [isOpen, slideAnim, fadeAnim]);
 
     const toggleTag = (tagName: string) => {
         const newExpanded = new Set(expandedTags);
@@ -135,17 +167,21 @@ const Sidebar: React.FC<SidebarProps> = ({
         return groups;
     }, [filteredAndSortedNodes, tags]);
 
-    if (!isOpen) return null;
-
     return (
         <>
             {/* Overlay for outside click */}
             <TouchableWithoutFeedback onPress={onClose}>
-                <View style={tw`absolute top-0 left-0 right-0 bottom-0 bg-black/50 z-40`} />
+                <Animated.View
+                    style={[
+                        tw`absolute top-0 left-0 right-0 bottom-0 bg-black/50 z-40`,
+                        { opacity: fadeAnim }
+                    ]}
+                    pointerEvents={isOpen ? 'auto' : 'none'}
+                />
             </TouchableWithoutFeedback>
 
             {/* Sidebar */}
-            <View style={tw`absolute top-0 left-0 bottom-0 w-80 bg-gray-900 z-50 shadow-2xl border-r border-gray-800`}>
+            <Animated.View style={[tw`absolute top-0 left-0 bottom-0 w-80 bg-gray-900 z-50 shadow-2xl border-r border-gray-800`, { transform: [{ translateX: slideAnim }] }]}>
                 {/* Header */}
                 <View style={tw`flex-row items-center justify-between p-4 border-b border-gray-800`}>
                     <Text style={tw`text-xl font-bold text-white`}>Menu</Text>
@@ -315,7 +351,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </View>
                     )}
                 </View>
-            </View>
+            </Animated.View>
         </>
     );
 };
