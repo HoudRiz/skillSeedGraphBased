@@ -1,8 +1,9 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { View, PanResponder, Animated, GestureResponderEvent, PanResponderInstance } from 'react-native';
+import { View, PanResponder, Animated, GestureResponderEvent, PanResponderInstance, TouchableOpacity, Text, ScrollView } from 'react-native';
 import Svg, { Circle, Line, G, Path, Text as SvgText } from 'react-native-svg';
 import * as d3 from 'd3';
+import tw from 'twrnc';
 import { Node, Tag } from '../types';
 import { DIFFICULTY_LEVELS } from '../constants';
 
@@ -81,6 +82,7 @@ const GraphView: React.FC<GraphViewProps> = ({
     // State for simulation nodes to trigger re-renders
     const [simNodes, setSimNodes] = useState<SimulationNode[]>([]);
     const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+    const [isLegendOpen, setIsLegendOpen] = useState(false);
 
     // Refs for PanResponder
     const lastTransform = useRef({ x: 0, y: 0, k: 1 });
@@ -495,6 +497,37 @@ const GraphView: React.FC<GraphViewProps> = ({
                     })}
                 </G>
             </Svg>
+
+            {/* Legend Overlay */}
+            <View style={tw`absolute bottom-6 left-6 z-50 flex-col-reverse items-start gap-2`}>
+                <TouchableOpacity
+                    onPress={() => setIsLegendOpen(!isLegendOpen)}
+                    style={tw`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 flex-row items-center justify-between min-w-[140px] shadow-lg`}
+                >
+                    <Text style={tw`text-white font-bold text-sm`}>Legend</Text>
+                    <Text style={tw`text-gray-400 text-xs ml-2`}>{isLegendOpen ? '▼' : '▲'}</Text>
+                </TouchableOpacity>
+
+                {isLegendOpen && (
+                    <View style={tw`bg-gray-900 border border-gray-700 rounded-lg p-2 max-h-64 w-[200px] shadow-xl`}>
+                        <ScrollView showsVerticalScrollIndicator={true}>
+                            {[...tags].sort((a, b) => b.totalXp - a.totalXp).map(tag => (
+                                <TouchableOpacity
+                                    key={tag.name}
+                                    onPress={() => onTagClick(tag.name)}
+                                    style={tw`flex-row items-center justify-between py-2 px-2 border-b border-gray-800 active:bg-gray-800 rounded`}
+                                >
+                                    <View style={tw`flex-row items-center flex-1`}>
+                                        <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: tag.color }]} />
+                                        <Text style={tw`text-gray-300 text-xs font-medium flex-1`} numberOfLines={1}>{tag.name}</Text>
+                                    </View>
+                                    <Text style={tw`text-gray-500 text-[10px] font-mono`}>{tag.totalXp} XP</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+            </View>
         </View>
     );
 };

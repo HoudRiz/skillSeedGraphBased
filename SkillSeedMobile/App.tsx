@@ -7,7 +7,7 @@ import { Node, Tag, Difficulty, NodeFormData } from './types';
 import useAsyncStorage from './hooks/useAsyncStorage';
 import GraphView from './components/GraphView';
 import NodeModal from './components/NodeModal';
-import GraphLegend from './components/GraphLegend';
+
 import { XP_MAP, TAG_COLORS } from './constants';
 
 // Stable UUID generator
@@ -243,7 +243,7 @@ export default function App() {
           height={height}
         />
 
-        <GraphLegend tags={tags} />
+
 
         <TouchableOpacity
           onPress={openAddNodeModal}
