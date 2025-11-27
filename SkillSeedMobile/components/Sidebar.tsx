@@ -20,8 +20,8 @@ const SearchIcon = () => (
     </Svg>
 );
 
-const ChevronRightIcon = () => (
-    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const ChevronRightIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Polyline points="9 18 15 12 9 6" />
     </Svg>
 );
@@ -305,7 +305,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         <Text style={tw`text-gray-400 text-xs`}>{tagNodes.length}</Text>
                                                     </View>
                                                 </View>
-                                                <Text style={tw`text-gray-500`}><ChevronRightIcon /></Text>
+                                                <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
+                                                    <ChevronRightIcon color="#9ca3af" />
+                                                </View>
                                             </TouchableOpacity>
 
                                             {isExpanded && (
