@@ -27,8 +27,8 @@ const ChevronRightIcon = ({ color = "#9ca3af" }: { color?: string }) => (
     </Svg>
 );
 
-const TrashIcon = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const TrashIcon = ({ color = "currentColor" }: { color?: string }) => (
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Polyline points="3 6 5 6 21 6" />
         <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </Svg>
@@ -197,8 +197,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         filteredAndSortedNodes.forEach(node => {
             if (isUnassigned(node)) {
                 groups['UNASSIGNED'].push(node);
-            } else if (groups[node.tags[0]]) {
-                groups[node.tags[0]].push(node);
+            } else {
+                // Add node to ALL its tags
+                node.tags.forEach(tagName => {
+                    if (groups[tagName]) {
+                        groups[tagName].push(node);
+                    }
+                });
             }
         });
         return groups;
@@ -322,7 +327,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         }}
                                                         style={tw`p-1`}
                                                     >
-                                                        <Text style={tw`text-red-400`}><TrashIcon /></Text>
+                                                        <TrashIcon color="#9ca3af" />
                                                     </TouchableOpacity>
                                                     <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
                                                         <ChevronRightIcon color="#9ca3af" />
