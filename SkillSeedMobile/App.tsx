@@ -121,12 +121,15 @@ export default function App() {
     setSelectedNode(null);
   };
 
-  const updateTags = (newNodes: Node[]) => {
+  const updateTags = (newNodes: Node[], currentTags: Tag[] = tags) => {
     const newTagsMap = new Map<string, { totalXp: number, color: string }>();
 
-    tags.forEach(tag => newTagsMap.set(tag.name, { totalXp: 0, color: tag.color }));
+    currentTags.forEach(tag => newTagsMap.set(tag.name, { totalXp: 0, color: tag.color }));
 
     newNodes.forEach(node => {
+      // Skip unassigned nodes for tag totals
+      if (node.tags.length === 0) return;
+
       node.tags.forEach(tagName => {
         if (!newTagsMap.has(tagName)) {
           const newColor = TAG_COLORS[newTagsMap.size % TAG_COLORS.length];
@@ -247,7 +250,8 @@ export default function App() {
         {
           text: "Delete", style: "destructive", onPress: () => {
             // Remove tag from global tags list
-            setTags((prevTags: Tag[]) => prevTags.filter(t => t.name !== tagName));
+            const newTagsList = tags.filter(t => t.name !== tagName);
+            setTags(newTagsList);
 
             // Update all nodes that reference this tag
             setNodes((prevNodes: Node[]) => {
@@ -258,11 +262,15 @@ export default function App() {
 
                 // Remove the deleted tag from the node's tags array
                 const newTags = node.tags.filter(t => t !== tagName);
+
+                // If newTags is empty, the node is now unassigned (tags: [])
+                // If newTags has items, the first one (newTags[0]) automatically becomes the primary tag
+
                 return { ...node, tags: newTags };
               });
 
-              // Update tag totals
-              setTimeout(() => updateTags(updatedNodes), 0);
+              // Update tag totals with the new tags list
+              setTimeout(() => updateTags(updatedNodes, newTagsList), 0);
               return updatedNodes;
             });
 
