@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { View, PanResponder, Animated, GestureResponderEvent, PanResponderInstance, TouchableOpacity, Text, ScrollView } from 'react-native';
 import Svg, { Circle, Line, G, Path, Text as SvgText } from 'react-native-svg';
@@ -17,6 +16,7 @@ interface GraphViewProps {
     activeTag: string | null | 'UNASSIGNED';
     width: number;
     height: number;
+    showDifficulty: boolean;
 }
 
 interface SimulationNode extends d3.SimulationNodeDatum, Node {
@@ -83,7 +83,8 @@ const GraphView: React.FC<GraphViewProps> = ({
     onBackgroundClick,
     activeTag,
     width,
-    height
+    height,
+    showDifficulty
 }) => {
     // State for simulation nodes to trigger re-renders
     const [simNodes, setSimNodes] = useState<SimulationNode[]>([]);
@@ -104,7 +105,6 @@ const GraphView: React.FC<GraphViewProps> = ({
     const draggingNode = useRef<SimulationNode | null>(null);
     const dragStartPos = useRef<{ x: number, y: number } | null>(null);
 
-    // Update refs
     // Update refs
     useEffect(() => {
         transformRef.current = transform;
@@ -352,7 +352,11 @@ const GraphView: React.FC<GraphViewProps> = ({
             } else {
                 // Tagged nodes use existing sector-based positioning
                 const angle = (angularScale(node.tags[0]) ?? 0) + angularScale.bandwidth() / 2;
-                const r = (radialScale(node.difficulty) ?? 0) + radialScale.bandwidth() / 2;
+
+                // If difficulty is shown, use difficulty radius. Otherwise, use middle of sector.
+                const r = showDifficulty
+                    ? (radialScale(node.difficulty) ?? 0) + radialScale.bandwidth() / 2
+                    : radius * 0.6; // Middle of the donut
 
                 return {
                     ...node,
@@ -385,10 +389,10 @@ const GraphView: React.FC<GraphViewProps> = ({
             simulation
                 .force("x", d3.forceX<SimulationNode>(d => {
                     return isUnassigned(d) ? 0 : d.targetX!;
-                }).strength(d => isUnassigned(d) ? 0 : 0.2))
+                }).strength(d => isUnassigned(d) ? 0 : (showDifficulty ? 0.2 : 0.05))) // Weaker force if difficulty hidden
                 .force("y", d3.forceY<SimulationNode>(d => {
                     return isUnassigned(d) ? 0 : d.targetY!;
-                }).strength(d => isUnassigned(d) ? 0 : 0.2))
+                }).strength(d => isUnassigned(d) ? 0 : (showDifficulty ? 0.2 : 0.05))) // Weaker force if difficulty hidden
                 .force("radialUnassigned", d3.forceRadial<SimulationNode>(d => {
                     return isUnassigned(d) ? unassignedRadius : 0;
                 }).strength(d => isUnassigned(d) ? 0.8 : 0));
@@ -406,7 +410,7 @@ const GraphView: React.FC<GraphViewProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale]);
+    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale, showDifficulty]);
 
     // Links for rendering
     const renderedLinks = useMemo(() => {
@@ -495,7 +499,7 @@ const GraphView: React.FC<GraphViewProps> = ({
                     })}
 
                     {/* Difficulty Rings */}
-                    {rings.map(ring => (
+                    {showDifficulty && rings.map(ring => (
                         <Circle
                             key={ring.diff}
                             r={ring.r}

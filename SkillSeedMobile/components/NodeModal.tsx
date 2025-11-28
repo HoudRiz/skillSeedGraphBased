@@ -15,6 +15,7 @@ interface NodeModalProps {
     nodeToEdit: Node | null;
     allTags: Tag[];
     allNodes: Node[];
+    showDifficulty: boolean;
 }
 
 const PencilIcon = ({ color = "currentColor" }: { color?: string }) => (
@@ -30,7 +31,7 @@ const EyeIcon = ({ color = "currentColor" }: { color?: string }) => (
     </Svg>
 );
 
-const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete, nodeToEdit, allTags, allNodes }) => {
+const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete, nodeToEdit, allTags, allNodes, showDifficulty }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -232,37 +233,41 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
                         {/* Controls Row: Difficulty & View Toggle */}
                         <View style={tw`flex-row justify-between items-center gap-4`}>
                             <View style={tw`flex-1 relative z-40`}>
-                                <TouchableOpacity
-                                    onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
-                                    style={tw`flex-row bg-gray-800 rounded-lg items-center justify-between px-4 py-3 border border-gray-700`}
-                                >
-                                    <View style={tw`flex-row items-center`}>
-                                        <Text style={tw`text-gray-400 text-sm mr-3 font-medium tracking-wide`}>DIFF:</Text>
-                                        <Text style={[
-                                            tw`text-sm font-bold`,
-                                            difficulty === Difficulty.Easy ? tw`text-green-400` :
-                                                difficulty === Difficulty.Medium ? tw`text-yellow-400` :
-                                                    tw`text-red-400`
-                                        ]}>{difficulty}</Text>
-                                    </View>
-                                    <Text style={tw`text-gray-500 text-xs`}>▼</Text>
-                                </TouchableOpacity>
+                                {showDifficulty && (
+                                    <>
+                                        <TouchableOpacity
+                                            onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
+                                            style={tw`flex-row bg-gray-800 rounded-lg items-center justify-between px-4 py-3 border border-gray-700`}
+                                        >
+                                            <View style={tw`flex-row items-center`}>
+                                                <Text style={tw`text-gray-400 text-sm mr-3 font-medium tracking-wide`}>DIFF:</Text>
+                                                <Text style={[
+                                                    tw`text-sm font-bold`,
+                                                    difficulty === Difficulty.Easy ? tw`text-green-400` :
+                                                        difficulty === Difficulty.Medium ? tw`text-yellow-400` :
+                                                            tw`text-red-400`
+                                                ]}>{difficulty}</Text>
+                                            </View>
+                                            <Text style={tw`text-gray-500 text-xs`}>▼</Text>
+                                        </TouchableOpacity>
 
-                                {showDifficultyDropdown && (
-                                    <View style={tw`absolute top-12 left-0 right-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden`}>
-                                        {DIFFICULTY_LEVELS.map(diff => (
-                                            <TouchableOpacity
-                                                key={diff}
-                                                onPress={() => {
-                                                    setDifficulty(diff);
-                                                    setShowDifficultyDropdown(false);
-                                                }}
-                                                style={[tw`px-4 py-3 border-b border-gray-700`, difficulty === diff && tw`bg-gray-700`]}
-                                            >
-                                                <Text style={[tw`text-sm`, difficulty === diff ? tw`text-white font-bold` : tw`text-gray-300`]}>{diff}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
+                                        {showDifficultyDropdown && (
+                                            <View style={tw`absolute top-12 left-0 right-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden`}>
+                                                {DIFFICULTY_LEVELS.map(diff => (
+                                                    <TouchableOpacity
+                                                        key={diff}
+                                                        onPress={() => {
+                                                            setDifficulty(diff);
+                                                            setShowDifficultyDropdown(false);
+                                                        }}
+                                                        style={[tw`px-4 py-3 border-b border-gray-700`, difficulty === diff && tw`bg-gray-700`]}
+                                                    >
+                                                        <Text style={[tw`text-sm`, difficulty === diff ? tw`text-white font-bold` : tw`text-gray-300`]}>{diff}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </>
                                 )}
                             </View>
 

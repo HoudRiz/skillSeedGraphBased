@@ -273,6 +273,7 @@ export default function App() {
           activeTag={activeTag}
           width={width}
           height={height}
+          showDifficulty={showDifficulty}
         />
 
 
@@ -293,6 +294,7 @@ export default function App() {
           nodeToEdit={selectedNode}
           allTags={tags}
           allNodes={nodes}
+          showDifficulty={showDifficulty}
         />
 
         <Sidebar
