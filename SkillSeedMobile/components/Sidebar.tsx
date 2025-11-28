@@ -8,15 +8,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TagEditModal from './TagEditModal';
 
 // Icons
-const CloseIcon = () => (
-    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const CloseIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Line x1="18" y1="6" x2="6" y2="18" />
         <Line x1="6" y1="6" x2="18" y2="18" />
     </Svg>
 );
 
-const SearchIcon = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const SearchIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Circle cx="11" cy="11" r="8" />
         <Line x1="21" y1="21" x2="16.65" y2="16.65" />
     </Svg>
@@ -28,29 +28,31 @@ const ChevronRightIcon = ({ color = "#9ca3af" }: { color?: string }) => (
     </Svg>
 );
 
-const TrashIcon = ({ color = "currentColor" }: { color?: string }) => (
+const TrashIcon = ({ color = "#9ca3af" }: { color?: string }) => (
     <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Polyline points="3 6 5 6 21 6" />
         <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <Line x1="10" y1="11" x2="10" y2="17" />
+        <Line x1="14" y1="11" x2="14" y2="17" />
     </Svg>
 );
 
-const PencilIcon = ({ color = "currentColor" }: { color?: string }) => (
+const PencilIcon = ({ color = "#9ca3af" }: { color?: string }) => (
     <Svg width="16" height="16" viewBox="0 0 20 20" fill={color}>
         <Path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
     </Svg>
 );
 
-const DownloadIcon = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+const DownloadIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <Polyline points="7 10 12 15 17 10" />
         <Line x1="12" y1="15" x2="12" y2="3" />
     </Svg>
 );
 
-const UploadIcon = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const UploadIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <Polyline points="17 8 12 3 7 8" />
         <Line x1="12" y1="3" x2="12" y2="15" />

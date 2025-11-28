@@ -261,14 +261,59 @@ export default function App() {
     }
   };
 
-  const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? tags.filter(t => t.name === activeTag) : tags;
-  const visibleNodes = activeTag === 'UNASSIGNED'
-    ? nodes.filter(n => isUnassigned(n))
-    : activeTag
-      ? nodes.filter(n => n.tags.includes(activeTag))
-      : nodes;
+  const [visibleTagsState, setVisibleTagsState, visibleTagsLoaded] = useAsyncStorage<Record<string, boolean>>('skillseed-visible-tags', {});
 
-  if (!nodesLoaded || !tagsLoaded) {
+  // Initialize visibleTagsState when tags change, but preserve existing keys
+  useEffect(() => {
+    if (!tagsLoaded || !visibleTagsLoaded) return;
+
+    setVisibleTagsState(prev => {
+      const next = { ...prev };
+      // Ensure UNASSIGNED key exists
+      if (next['UNASSIGNED'] === undefined) {
+        next['UNASSIGNED'] = true;
+      }
+      // Ensure all tags have keys
+      tags.forEach(t => {
+        if (next[t.name] === undefined) {
+          next[t.name] = true;
+        }
+      });
+      return next;
+    });
+  }, [tags, tagsLoaded, visibleTagsLoaded]);
+
+  const handleToggleTagVisibility = useCallback((tagName: string) => {
+    setVisibleTagsState(prev => ({
+      ...prev,
+      [tagName]: !prev[tagName]
+    }));
+  }, [setVisibleTagsState]);
+
+  const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? tags.filter(t => t.name === activeTag) : tags;
+
+  // Filter nodes based on visibility state AND active tag
+  const visibleNodes = nodes.filter(n => {
+    // 1. Filter by active tag (zoom)
+    if (activeTag === 'UNASSIGNED') {
+      if (!isUnassigned(n)) return false;
+    } else if (activeTag) {
+      if (!n.tags.includes(activeTag)) return false;
+    }
+
+    // 2. Filter by visibility toggles
+    if (isUnassigned(n)) {
+      if (visibleTagsState['UNASSIGNED'] === false) return false;
+    } else {
+      const primaryTag = n.tags[0];
+      // If the primary tag is hidden, hide the node
+      if (visibleTagsState[primaryTag] === false) return false;
+    }
+
+    return true;
+  });
+
+  if (!nodesLoaded || !tagsLoaded || !visibleTagsLoaded) {
     return <View style={tw`flex-1 bg-gray-900 justify-center items-center`}><Text style={tw`text-white`}>Loading...</Text></View>;
   }
 
@@ -306,6 +351,8 @@ export default function App() {
           width={width}
           height={height}
           showDifficulty={showDifficulty}
+          visibleTagsState={visibleTagsState}
+          onToggleTagVisibility={handleToggleTagVisibility}
         />
 
 

@@ -17,6 +17,8 @@ interface GraphViewProps {
     width: number;
     height: number;
     showDifficulty: boolean;
+    visibleTagsState: Record<string, boolean>;
+    onToggleTagVisibility: (tagName: string) => void;
 }
 
 interface SimulationNode extends d3.SimulationNodeDatum, Node {
@@ -99,35 +101,14 @@ const GraphView: React.FC<GraphViewProps> = ({
     activeTag,
     width,
     height,
-    showDifficulty
+    showDifficulty,
+    visibleTagsState,
+    onToggleTagVisibility
 }) => {
     // State for simulation nodes to trigger re-renders
     const [simNodes, setSimNodes] = useState<SimulationNode[]>([]);
     const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
     const [isLegendOpen, setIsLegendOpen] = useState(false);
-
-    // Visibility State
-    const [visibleTags, setVisibleTags] = useState<Record<string, boolean>>({});
-
-    // Initialize visibleTags when tags change
-    useEffect(() => {
-        setVisibleTags(prev => {
-            const next = { ...prev };
-            tags.forEach(t => {
-                if (next[t.name] === undefined) {
-                    next[t.name] = true;
-                }
-            });
-            return next;
-        });
-    }, [tags]);
-
-    const toggleTagVisibility = (tagName: string) => {
-        setVisibleTags(prev => ({
-            ...prev,
-            [tagName]: !prev[tagName]
-        }));
-    };
 
     // Refs for PanResponder
     const lastTransform = useRef({ x: 0, y: 0, k: 1 });
@@ -386,8 +367,8 @@ const GraphView: React.FC<GraphViewProps> = ({
 
     // Filter tags based on visibility
     const visibleTagsList = useMemo(() => {
-        return tags.filter(t => visibleTags[t.name] !== false);
-    }, [tags, visibleTags]);
+        return tags.filter(t => visibleTagsState[t.name] !== false);
+    }, [tags, visibleTagsState]);
 
     const angularScale = useMemo(() => d3.scaleBand<string>()
         .domain(visibleTagsList.map(t => t.name))
@@ -432,7 +413,7 @@ const GraphView: React.FC<GraphViewProps> = ({
         const taggedNodes = nodes.filter(n => {
             if (isUnassigned(n)) return false;
             const primaryTag = n.tags[0];
-            return visibleTags[primaryTag] !== false;
+            return visibleTagsState[primaryTag] !== false;
         });
 
         const activeNodes = [...unassignedNodes, ...taggedNodes];
@@ -511,7 +492,7 @@ const GraphView: React.FC<GraphViewProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale, showDifficulty, visibleTags]);
+    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale, showDifficulty, visibleTagsState]);
 
     // Links for rendering
     const renderedLinks = useMemo(() => {
@@ -668,8 +649,8 @@ const GraphView: React.FC<GraphViewProps> = ({
 
                                     <View style={tw`flex-row items-center gap-2`}>
                                         <Text style={tw`text-gray-500 text-[10px] font-mono`}>{tag.totalXp} XP</Text>
-                                        <TouchableOpacity onPress={() => toggleTagVisibility(tag.name)}>
-                                            {visibleTags[tag.name] !== false ? (
+                                        <TouchableOpacity onPress={() => onToggleTagVisibility(tag.name)}>
+                                            {visibleTagsState[tag.name] !== false ? (
                                                 <EyeIcon color="#9ca3af" />
                                             ) : (
                                                 <EyeOffIcon color="#6b7280" />
@@ -678,6 +659,26 @@ const GraphView: React.FC<GraphViewProps> = ({
                                     </View>
                                 </View>
                             ))}
+                            {/* Unassigned Legend Item */}
+                            <View
+                                key="UNASSIGNED"
+                                style={tw`flex-row items-center justify-between py-2 px-2 border-b border-gray-800 rounded`}
+                            >
+                                <View style={tw`flex-row items-center flex-1`}>
+                                    <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: '#94a3b8' }]} />
+                                    <Text style={tw`text-gray-300 text-xs font-medium flex-1`} numberOfLines={1}>Unassigned</Text>
+                                </View>
+
+                                <View style={tw`flex-row items-center gap-2`}>
+                                    <TouchableOpacity onPress={() => onToggleTagVisibility('UNASSIGNED')}>
+                                        {visibleTagsState['UNASSIGNED'] !== false ? (
+                                            <EyeIcon color="#9ca3af" />
+                                        ) : (
+                                            <EyeOffIcon color="#6b7280" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </ScrollView>
                     </View>
                 )}
