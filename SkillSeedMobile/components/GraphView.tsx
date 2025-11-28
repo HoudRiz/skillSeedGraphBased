@@ -75,6 +75,21 @@ const GraphNode = React.memo(({
     );
 });
 
+// Icons
+const EyeIcon = ({ color = "currentColor" }: { color?: string }) => (
+    <Svg width="16" height="16" viewBox="0 0 20 20" fill={color}>
+        <Path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+        <Path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+    </Svg>
+);
+
+const EyeOffIcon = ({ color = "currentColor" }: { color?: string }) => (
+    <Svg width="16" height="16" viewBox="0 0 20 20" fill={color}>
+        <Path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+        <Path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+    </Svg>
+);
+
 const GraphView: React.FC<GraphViewProps> = ({
     nodes,
     tags,
@@ -91,15 +106,40 @@ const GraphView: React.FC<GraphViewProps> = ({
     const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
     const [isLegendOpen, setIsLegendOpen] = useState(false);
 
+    // Visibility State
+    const [visibleTags, setVisibleTags] = useState<Record<string, boolean>>({});
+
+    // Initialize visibleTags when tags change
+    useEffect(() => {
+        setVisibleTags(prev => {
+            const next = { ...prev };
+            tags.forEach(t => {
+                if (next[t.name] === undefined) {
+                    next[t.name] = true;
+                }
+            });
+            return next;
+        });
+    }, [tags]);
+
+    const toggleTagVisibility = (tagName: string) => {
+        setVisibleTags(prev => ({
+            ...prev,
+            [tagName]: !prev[tagName]
+        }));
+    };
+
     // Refs for PanResponder
     const lastTransform = useRef({ x: 0, y: 0, k: 1 });
     const lastDistance = useRef<number | null>(null);
     const transformRef = useRef(transform);
     const onBackgroundClickRef = useRef(onBackgroundClick);
     const onNodeClickRef = useRef(onNodeClick);
+    const onTagClickRef = useRef(onTagClick);
     const simNodesRef = useRef<SimulationNode[]>([]);
     const activeTagRef = useRef(activeTag);
     const dimensionsRef = useRef({ width, height });
+    const angularScaleRef = useRef<d3.ScaleBand<string> | null>(null);
 
     // Dragging state
     const draggingNode = useRef<SimulationNode | null>(null);
@@ -110,9 +150,10 @@ const GraphView: React.FC<GraphViewProps> = ({
         transformRef.current = transform;
         onBackgroundClickRef.current = onBackgroundClick;
         onNodeClickRef.current = onNodeClick;
+        onTagClickRef.current = onTagClick;
         activeTagRef.current = activeTag;
         dimensionsRef.current = { width, height };
-    }, [transform, onBackgroundClick, onNodeClick, activeTag, width, height]);
+    }, [transform, onBackgroundClick, onNodeClick, onTagClick, activeTag, width, height]);
 
     // We use a ref to keep track of the simulation instance
     const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
@@ -136,11 +177,6 @@ const GraphView: React.FC<GraphViewProps> = ({
         const cy = height / 2;
         const isMobile = width < 640;
         const nodeRadius = isMobile ? 6 : 8;
-
-        // Convert screen coordinates to graph coordinates
-        // transform: translate(centerX + tx, centerY + ty) scale(k)
-        // screenX = (graphX * k) + centerX + tx
-        // graphX = (screenX - centerX - tx) / k
 
         const tx = transformRef.current.x;
         const ty = transformRef.current.y;
@@ -167,6 +203,56 @@ const GraphView: React.FC<GraphViewProps> = ({
                 return node;
             }
         }
+        return null;
+    };
+
+    // Helper to find tag sector at coordinates
+    const findTagAt = (x: number, y: number) => {
+        if (!angularScaleRef.current) return null;
+
+        const { width, height } = dimensionsRef.current;
+        const cx = width / 2;
+        const cy = height / 2;
+        const tx = transformRef.current.x;
+        const ty = transformRef.current.y;
+        const k = transformRef.current.k;
+
+        // Convert to graph coordinates relative to center
+        const graphX = (x - cx - tx) / k;
+        const graphY = (y - cy - ty) / k;
+
+        // Calculate radius and angle
+        const r = Math.sqrt(graphX * graphX + graphY * graphY);
+        let angle = Math.atan2(graphY, graphX) + Math.PI / 2; // Adjust for d3 arc starting at 12 o'clock (0 rads is 12 o'clock in our logic?)
+        // Actually d3.arc 0 is 12 o'clock. Math.atan2 0 is 3 o'clock.
+        // Our angular scale range is [0, 2PI].
+        // Let's normalize angle to [0, 2PI].
+
+        // Wait, d3.arc startAngle 0 is 12 o'clock.
+        // Math.atan2(y, x): 0 is 3 o'clock (positive x).
+        // So 12 o'clock is -PI/2.
+        // To map atan2 to d3 arc:
+        // angle = atan2(y, x) + PI/2.
+        // If result < 0, add 2PI.
+
+        if (angle < 0) angle += 2 * Math.PI;
+
+        // Check if radius is within sector bounds
+        // Inner radius 0, Outer radius 'radius'
+        if (r > radius) return null;
+
+        // Find which band the angle falls into
+        const domain = angularScaleRef.current.domain();
+        for (const tagName of domain) {
+            const start = angularScaleRef.current(tagName) || 0;
+            const width = angularScaleRef.current.bandwidth();
+            const end = start + width;
+
+            if (angle >= start && angle < end) {
+                return tagName;
+            }
+        }
+
         return null;
     };
 
@@ -209,23 +295,6 @@ const GraphView: React.FC<GraphViewProps> = ({
                 // Handle Node Dragging
                 if (draggingNode.current && simulationRef.current) {
                     const k = transformRef.current.k;
-                    // Calculate delta in graph coordinates
-                    // We need to use the initial drag start position to avoid accumulation errors
-                    // But simpler is just adding delta to current fx/fy
-
-                    // Actually, better to just update fx/fy based on gestureState.dx/dy
-                    // The node was fixed at grant.
-                    // New pos = Start pos + delta / k
-
-                    // We need the node's position at start of drag. 
-                    // Since we didn't store it, we can just use incremental updates if we are careful,
-                    // OR better: store initial node pos.
-                    // Let's rely on the fact that fx/fy are set.
-
-                    // Wait, gestureState.dx is total accumulated distance since grant.
-                    // So we need the ORIGINAL fx/fy at grant.
-                    // Let's just use the current mouse position mapped to graph space.
-
                     const { locationX, locationY } = evt.nativeEvent;
                     const tx = transformRef.current.x;
                     const ty = transformRef.current.y;
@@ -270,6 +339,8 @@ const GraphView: React.FC<GraphViewProps> = ({
                 }
             },
             onPanResponderRelease: (evt, gestureState) => {
+                const { locationX, locationY } = evt.nativeEvent;
+
                 if (draggingNode.current && simulationRef.current) {
                     // Check for click (minimal movement)
                     const dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
@@ -288,7 +359,18 @@ const GraphView: React.FC<GraphViewProps> = ({
                     return;
                 }
 
+                // Background Click / Tag Click
                 if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5 && !lastDistance.current) {
+                    // Check if we clicked a tag sector
+                    // Only if not zoomed (if zoomed, background click usually resets zoom)
+                    if (!activeTagRef.current || activeTagRef.current === 'UNASSIGNED') {
+                        const clickedTag = findTagAt(locationX, locationY);
+                        if (clickedTag) {
+                            onTagClickRef.current(clickedTag);
+                            return;
+                        }
+                    }
+
                     onBackgroundClickRef.current();
                 }
                 lastDistance.current = null;
@@ -302,13 +384,23 @@ const GraphView: React.FC<GraphViewProps> = ({
         .domain(DIFFICULTY_LEVELS)
         .range([radius * 0.2, radius]), [radius]);
 
-    const angularScale = useMemo(() => d3.scaleBand<string>()
-        .domain(tags.map(t => t.name))
-        .range([0, 2 * Math.PI]), [tags]);
+    // Filter tags based on visibility
+    const visibleTagsList = useMemo(() => {
+        return tags.filter(t => visibleTags[t.name] !== false);
+    }, [tags, visibleTags]);
 
-    // Background Sectors - only show when there are 2+ tags
+    const angularScale = useMemo(() => d3.scaleBand<string>()
+        .domain(visibleTagsList.map(t => t.name))
+        .range([0, 2 * Math.PI]), [visibleTagsList]);
+
+    // Update ref for hit testing
+    useEffect(() => {
+        angularScaleRef.current = angularScale;
+    }, [angularScale]);
+
+    // Background Sectors
     const sectors = useMemo(() => {
-        if (tags.length < 2) return [];
+        if (visibleTagsList.length === 0) return [];
 
         const arc = d3.arc<Tag>()
             .innerRadius(0)
@@ -316,11 +408,11 @@ const GraphView: React.FC<GraphViewProps> = ({
             .startAngle(d => angularScale(d.name)!)
             .endAngle(d => angularScale(d.name)! + angularScale.bandwidth());
 
-        return tags.map(tag => ({
+        return visibleTagsList.map(tag => ({
             tag,
             path: arc(tag) || ""
         }));
-    }, [tags, radius, angularScale]);
+    }, [visibleTagsList, radius, angularScale]);
 
     // Difficulty Rings
     const rings = useMemo(() => {
@@ -334,10 +426,19 @@ const GraphView: React.FC<GraphViewProps> = ({
     useEffect(() => {
         // Separate unassigned nodes from tagged nodes
         const unassignedNodes = nodes.filter(isUnassigned);
-        const taggedNodes = nodes.filter(n => !isUnassigned(n));
+
+        // Filter tagged nodes based on visibility
+        // If a node's primary tag is hidden, hide the node
+        const taggedNodes = nodes.filter(n => {
+            if (isUnassigned(n)) return false;
+            const primaryTag = n.tags[0];
+            return visibleTags[primaryTag] !== false;
+        });
+
+        const activeNodes = [...unassignedNodes, ...taggedNodes];
 
         // Prepare nodes
-        const initialNodes: SimulationNode[] = nodes.map((node, index) => {
+        const initialNodes: SimulationNode[] = activeNodes.map((node, index) => {
             if (isUnassigned(node)) {
                 // Position unassigned nodes on outer ring - no targetX/targetY to allow free movement
                 const unassignedIndex = unassignedNodes.findIndex(n => n.id === node.id);
@@ -368,9 +469,9 @@ const GraphView: React.FC<GraphViewProps> = ({
             }
         });
 
-        const links = nodes.flatMap(source =>
+        const links = activeNodes.flatMap(source =>
             source.links.map(targetId => {
-                const targetExists = nodes.find(n => n.id === targetId);
+                const targetExists = activeNodes.find(n => n.id === targetId);
                 return targetExists ? { source: source.id, target: targetId } : null;
             }).filter(Boolean) as { source: string, target: string }[]
         );
@@ -410,7 +511,7 @@ const GraphView: React.FC<GraphViewProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale, showDifficulty]);
+    }, [nodes, tags, width, height, activeTag, isZoomed, isMobile, radius, unassignedRadius, collisionRadius, angularScale, radialScale, showDifficulty, visibleTags]);
 
     // Links for rendering
     const renderedLinks = useMemo(() => {
@@ -462,15 +563,6 @@ const GraphView: React.FC<GraphViewProps> = ({
                                 fillOpacity={isZoomed ? 0.1 : 0.05}
                                 stroke="#ffffff"
                                 strokeOpacity={0.05}
-                            />
-                            {/* Invisible clickable overlay - larger hit area */}
-                            <Path
-                                d={sector.path}
-                                fill={sector.tag.color}
-                                fillOpacity={0.01}
-                                stroke="transparent"
-                                strokeWidth={20}
-                                onPress={() => !isZoomed && onTagClick(sector.tag.name)}
                             />
                         </G>
                     ))}
@@ -562,17 +654,29 @@ const GraphView: React.FC<GraphViewProps> = ({
                     <View style={tw`bg-gray-900 border border-gray-700 rounded-lg p-2 max-h-64 w-[200px] shadow-xl`}>
                         <ScrollView showsVerticalScrollIndicator={true}>
                             {[...tags].sort((a, b) => b.totalXp - a.totalXp).map(tag => (
-                                <TouchableOpacity
+                                <View
                                     key={tag.name}
-                                    onPress={() => onTagClick(tag.name)}
-                                    style={tw`flex-row items-center justify-between py-2 px-2 border-b border-gray-800 active:bg-gray-800 rounded`}
+                                    style={tw`flex-row items-center justify-between py-2 px-2 border-b border-gray-800 rounded`}
                                 >
-                                    <View style={tw`flex-row items-center flex-1`}>
+                                    <TouchableOpacity
+                                        onPress={() => onTagClick(tag.name)}
+                                        style={tw`flex-row items-center flex-1`}
+                                    >
                                         <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: tag.color }]} />
                                         <Text style={tw`text-gray-300 text-xs font-medium flex-1`} numberOfLines={1}>{tag.name}</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={tw`flex-row items-center gap-2`}>
+                                        <Text style={tw`text-gray-500 text-[10px] font-mono`}>{tag.totalXp} XP</Text>
+                                        <TouchableOpacity onPress={() => toggleTagVisibility(tag.name)}>
+                                            {visibleTags[tag.name] !== false ? (
+                                                <EyeIcon color="#9ca3af" />
+                                            ) : (
+                                                <EyeOffIcon color="#6b7280" />
+                                            )}
+                                        </TouchableOpacity>
                                     </View>
-                                    <Text style={tw`text-gray-500 text-[10px] font-mono`}>{tag.totalXp} XP</Text>
-                                </TouchableOpacity>
+                                </View>
                             ))}
                         </ScrollView>
                     </View>
