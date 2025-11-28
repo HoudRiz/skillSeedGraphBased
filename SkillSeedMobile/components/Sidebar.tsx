@@ -5,6 +5,7 @@ import { Node, Tag, Difficulty } from '../types';
 import { isUnassigned } from '../utils';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import TagEditModal from './TagEditModal';
 
 // Icons
 const CloseIcon = () => (
@@ -34,9 +35,15 @@ const TrashIcon = ({ color = "currentColor" }: { color?: string }) => (
     </Svg>
 );
 
+const PencilIcon = ({ color = "currentColor" }: { color?: string }) => (
+    <Svg width="16" height="16" viewBox="0 0 20 20" fill={color}>
+        <Path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+    </Svg>
+);
+
 const DownloadIcon = () => (
     <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <Polyline points="7 10 12 15 17 10" />
         <Line x1="12" y1="15" x2="12" y2="3" />
     </Svg>
@@ -58,6 +65,7 @@ interface SidebarProps {
     onNodeClick: (node: Node) => void;
     onTagClick: (tagName: string | 'UNASSIGNED') => void;
     onDeleteTag: (tagName: string) => void;
+    onEditTag: (oldTagName: string, newTagName: string, newColor: string) => void;
     onToggleDifficulty: () => void;
     difficultyVisible: boolean;
     onReset: () => void;
@@ -75,6 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onNodeClick,
     onTagClick,
     onDeleteTag,
+    onEditTag,
     onToggleDifficulty,
     difficultyVisible,
     onReset,
@@ -86,6 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [sortBy, setSortBy] = useState<SortOption>('Name (A-Z)');
     const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
     const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set(tags.map(t => t.name)));
+    const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
     const { height } = Dimensions.get('window');
     const slideAnim = useRef(new Animated.Value(-320)).current;
@@ -323,6 +333,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                     <TouchableOpacity
                                                         onPress={(e) => {
                                                             e.stopPropagation();
+                                                            setEditingTag(tag);
+                                                        }}
+                                                        style={tw`p-1`}
+                                                    >
+                                                        <PencilIcon color="#9ca3af" />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        onPress={(e) => {
+                                                            e.stopPropagation();
                                                             onDeleteTag(tag.name);
                                                         }}
                                                         style={tw`p-1`}
@@ -462,6 +481,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </View>
             </Animated.View>
+
+            <TagEditModal
+                isOpen={!!editingTag}
+                onClose={() => setEditingTag(null)}
+                onSave={onEditTag}
+                tagToEdit={editingTag}
+                allTags={tags}
+            />
         </>
     );
 };

@@ -229,6 +229,38 @@ export default function App() {
     );
   };
 
+  const handleEditTag = (oldTagName: string, newTagName: string, newColor: string) => {
+    // 1. Update the tag in the tags list
+    const newTagsList = tags.map(t =>
+      t.name === oldTagName
+        ? { ...t, name: newTagName, color: newColor }
+        : t
+    );
+    setTags(newTagsList);
+
+    // 2. Update all nodes that use this tag
+    setNodes((prevNodes: Node[]) => {
+      const updatedNodes = prevNodes.map(node => {
+        if (!node.tags.includes(oldTagName)) {
+          return node;
+        }
+
+        const newTags = node.tags.map(t => t === oldTagName ? newTagName : t);
+        return { ...node, tags: newTags };
+      });
+
+      // Update totals (though totals shouldn't change, just names/colors)
+      // But updateTags recalculates everything so it's safe
+      setTimeout(() => updateTags(updatedNodes, newTagsList), 0);
+      return updatedNodes;
+    });
+
+    // 3. Update activeTag if needed
+    if (activeTag === oldTagName) {
+      setActiveTag(newTagName);
+    }
+  };
+
   const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? tags.filter(t => t.name === activeTag) : tags;
   const visibleNodes = activeTag === 'UNASSIGNED'
     ? nodes.filter(n => isUnassigned(n))
@@ -308,6 +340,7 @@ export default function App() {
           }}
           onTagClick={handleTagClick}
           onDeleteTag={handleDeleteTag}
+          onEditTag={handleEditTag}
           onToggleDifficulty={() => setShowDifficulty(!showDifficulty)}
           difficultyVisible={showDifficulty}
           onReset={handleReset}
