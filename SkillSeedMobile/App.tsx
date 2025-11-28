@@ -19,62 +19,7 @@ const simpleUUID = () => "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,
 });
 
 const getInitialData = (): { nodes: Node[], tags: Tag[] } => {
-  const uuid = () => simpleUUID();
-
-  const tags: Tag[] = [
-    { name: "Frontend", color: TAG_COLORS[6], totalXp: 0 },
-    { name: "Backend", color: TAG_COLORS[10], totalXp: 0 },
-    { name: "DevOps", color: TAG_COLORS[14], totalXp: 0 },
-    { name: "Design", color: TAG_COLORS[1], totalXp: 0 },
-    { name: "CS Concepts", color: TAG_COLORS[8], totalXp: 0 },
-  ];
-
-  const nodes: Node[] = [];
-
-  const addNode = (title: string, tag: string, diff: Difficulty, desc: string, links: string[] = []) => {
-    const id = uuid();
-    nodes.push({
-      id,
-      title,
-      description: desc,
-      tags: [tag],
-      difficulty: diff,
-      xp: XP_MAP[diff],
-      links,
-      createdAt: new Date().toISOString()
-    });
-    return id;
-  };
-
-  const algorithms = addNode("Algorithms", "CS Concepts", Difficulty.Medium, "Sorting, searching, and graph traversals.");
-  const dataStructures = addNode("Data Structures", "CS Concepts", Difficulty.Medium, "Arrays, Linked Lists, Trees, Hash Maps.");
-  const bigO = addNode("Big O Notation", "CS Concepts", Difficulty.Easy, "Understanding time and space complexity.", [algorithms, dataStructures]);
-
-  const html = addNode("HTML5", "Frontend", Difficulty.Easy, "Semantic markup and structure.");
-  const css = addNode("CSS3", "Frontend", Difficulty.Easy, "Styling, Flexbox, Grid.", [html]);
-  const js = addNode("JavaScript", "Frontend", Difficulty.Medium, "ES6+, DOM manipulation, Event Loop.", [html, css, bigO]);
-  const react = addNode("React", "Frontend", Difficulty.Medium, "Components, Hooks, State Management.", [js]);
-  const ts = addNode("TypeScript", "Frontend", Difficulty.Hard, "Static typing for JS.", [js, react]);
-  const d3node = addNode("D3.js", "Frontend", Difficulty.Hard, "Data visualization library.", [js]);
-
-  const nodejs = addNode("Node.js", "Backend", Difficulty.Medium, "JS runtime environment.", [js]);
-  const express = addNode("Express", "Backend", Difficulty.Easy, "Web framework for Node.", [nodejs]);
-  const sql = addNode("SQL", "Backend", Difficulty.Medium, "Relational database querying.");
-  const rest = addNode("REST APIs", "Backend", Difficulty.Medium, "API design principles.", [express]);
-
-  const git = addNode("Git", "DevOps", Difficulty.Easy, "Version control.");
-  const docker = addNode("Docker", "DevOps", Difficulty.Medium, "Containerization.", [nodejs]);
-  const ciCd = addNode("CI/CD", "DevOps", Difficulty.Hard, "Automated pipelines.", [git, docker]);
-
-  const figma = addNode("Figma", "Design", Difficulty.Easy, "UI design tool.");
-  const uiux = addNode("UI/UX Principles", "Design", Difficulty.Medium, "User centered design.", [figma, html]);
-
-  nodes.forEach(n => {
-    const t = tags.find(tag => tag.name === n.tags[0]);
-    if (t) t.totalXp += n.xp;
-  });
-
-  return { nodes, tags };
+  return { nodes: [], tags: [] };
 };
 
 const PlusIcon = () => (
