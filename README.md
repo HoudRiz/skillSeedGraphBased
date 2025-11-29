@@ -70,21 +70,21 @@ SkillSeed Mobile is a graph-based skill management system that allows users to c
 ## 📸 Screenshots
 
 ### Home Screen
-![Home Screen](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\HomePage.png)
+![Home Screen](SkillSeedMobile\Screenshots\HomePage.png)
 
 ### Graph Navigation
-![Graph Navigation](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\graphNavigationOne.jpg)
-![Graph Navigation](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\graphNavigationTwo.jpg)      
+![Graph Navigation](SkillSeedMobile\Screenshots\graphNavigationOne.jpg)
+![Graph Navigation](SkillSeedMobile\Screenshots\graphNavigationTwo.jpg)      
 
 ### Node Detail View
-![node detail view](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\nodeDetailView.jpg)   
+![node detail view](SkillSeedMobile\Screenshots\node view.jpg)   
 
 ### Sidebar & Settings
-![Sidebar](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\sideBar.jpg)      
-![settings](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\settings.jpg)      
+![Sidebar](SkillSeedMobile\Screenshots\sideBar.jpg)      
+![settings](SkillSeedMobile\Screenshots\settings.jpg)      
 
 ### Tag Management
-![tag managment](D:\repos\skillSeedGraphBased\SkillSeedMobile\Screenshots\tagManagment.jpg)    
+![tag managment](SkillSeedMobile\Screenshots\tagManagment.jpg)    
 
 ### Vault Switcher
 ![vault switcher](SkillSeedMobile/Screenshots/vaultManagement.jpg)      
