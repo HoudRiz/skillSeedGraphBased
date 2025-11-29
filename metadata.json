@@ -1,5 +1,0 @@
-{
-  "name": "SkillSeed Graph",
-  "description": "SkillSeed Graph is a visual learning tracker that transforms personal knowledge growth into an interactive, color-coded graph. Each 'node' represents a concept learned, categorized by tags, difficulty, and interconnections with other ideas.",
-  "requestFramePermissions": []
-}
