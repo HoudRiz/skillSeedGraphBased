@@ -231,13 +231,7 @@ export default function App() {
     );
   };
 
-  const handleExport = () => {
-    Alert.alert("Export", "Data export functionality coming soon!");
-  };
 
-  const handleImport = () => {
-    Alert.alert("Import", "Data import functionality coming soon!");
-  };
 
   const handleDeleteTag = (tagName: string) => {
     Alert.alert(
@@ -417,6 +411,112 @@ export default function App() {
     setCurrentVaultId(vaultId);
     setActiveTag(null); // Reset active tag when switching vaults
   };
+
+  const handleExport = async () => {
+    const vaultId = currentVaultId;
+    if (!vaultId) return;
+
+    try {
+      const vault = vaults.find(v => v.id === vaultId);
+      if (!vault) return;
+
+      const vaultNodes = nodes.filter(n => n.vaultId === vaultId);
+      const vaultTags = tags.filter(t => t.vaultId === vaultId);
+
+      const exportData = {
+        vault,
+        nodes: vaultNodes,
+        tags: vaultTags,
+        exportedAt: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const fileName = `${vault.name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
+
+      // For React Native, we'll use expo-file-system and expo-sharing
+      const FileSystem = require('expo-file-system');
+      const Sharing = require('expo-sharing');
+
+      const fileUri = FileSystem.documentDirectory + fileName;
+      await FileSystem.writeAsStringAsync(fileUri, jsonString);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        Alert.alert('Success', `Vault exported to ${fileName}`);
+      }
+    } catch (error) {
+      Alert.alert('Export Failed', 'Could not export vault: ' + error);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const DocumentPicker = require('expo-document-picker');
+      const FileSystem = require('expo-file-system');
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true
+      });
+
+      if (result.type === 'cancel' || !result.uri) {
+        return;
+      }
+
+      const jsonString = await FileSystem.readAsStringAsync(result.uri);
+      const importData = JSON.parse(jsonString);
+
+      // Validate import data
+      if (!importData.vault || !importData.nodes || !importData.tags) {
+        Alert.alert('Invalid File', 'The selected file is not a valid vault export.');
+        return;
+      }
+
+      // Check if vault name already exists
+      const existingVault = vaults.find(v => v.name === importData.vault.name);
+      if (existingVault) {
+        Alert.alert(
+          'Vault Exists',
+          `A vault named "${importData.vault.name}" already exists. Please rename it first.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Generate new IDs for imported vault
+      const newVaultId = simpleUUID();
+      const importedVault: Vault = {
+        ...importData.vault,
+        id: newVaultId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Update node and tag vault IDs
+      const importedNodes = importData.nodes.map((node: Node) => ({
+        ...node,
+        vaultId: newVaultId
+      }));
+
+      const importedTags = importData.tags.map((tag: Tag) => ({
+        ...tag,
+        vaultId: newVaultId
+      }));
+
+      // Add to state
+      setVaults(prev => [...prev, importedVault]);
+      setNodes(prev => [...prev, ...importedNodes]);
+      setTags(prev => [...prev, ...importedTags]);
+      setCurrentVaultId(newVaultId);
+
+      Alert.alert('Success', `Vault "${importedVault.name}" imported successfully!`);
+    } catch (error) {
+      Alert.alert('Import Failed', 'Could not import vault: ' + error);
+    }
+  };
+
 
   if (!nodesLoaded || !tagsLoaded || !vaultsLoaded || !currentVaultIdLoaded || !visibleTagsLoaded) {
     return <View style={tw`flex-1 bg-gray-900 justify-center items-center`}><Text style={tw`text-white`}>Loading...</Text></View>;

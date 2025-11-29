@@ -20,11 +20,7 @@ const ChevronDownIcon = () => (
     </Svg>
 );
 
-const VaultIcon = () => (
-    <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-        <Path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18" />
-    </Svg>
-);
+
 
 const PlusIcon = () => (
     <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2">
@@ -42,6 +38,18 @@ const EditIcon = () => (
 const TrashIcon = () => (
     <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
         <Path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </Svg>
+);
+
+const DownloadIcon = () => (
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+    </Svg>
+);
+
+const UploadIcon = () => (
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
     </Svg>
 );
 
@@ -111,7 +119,6 @@ export default function VaultSwitcher({
                 onPress={() => setIsOpen(true)}
                 style={tw`bg-gray-800 px-3 py-2 rounded-lg border border-gray-700 shadow-lg flex-row items-center gap-2 min-w-32`}
             >
-                <VaultIcon />
                 <Text style={tw`text-white text-sm font-medium flex-1`} numberOfLines={1}>
                     {currentVault?.name || 'Select Vault'}
                 </Text>
@@ -148,7 +155,6 @@ export default function VaultSwitcher({
                                                     onPress={() => handleVaultSelect(vault.id)}
                                                     style={tw`flex-1 flex-row items-center gap-2`}
                                                 >
-                                                    <VaultIcon />
                                                     <View style={tw`flex-1`}>
                                                         <Text style={tw`text-white font-medium`}>{vault.name}</Text>
                                                         {vault.id === currentVaultId && (
