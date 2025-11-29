@@ -23,15 +23,15 @@ function useAsyncStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
         loadStoredValue();
     }, [key]);
 
-    const setValue = useCallback(async (value: T | ((val: T) => T)) => {
-        try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            await AsyncStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (error) {
-            console.error('Error saving to AsyncStorage:', error);
-        }
-    }, [key, storedValue]);
+    const setValue = useCallback((value: T | ((val: T) => T)) => {
+        setStoredValue((prev) => {
+            const valueToStore = value instanceof Function ? value(prev) : value;
+            AsyncStorage.setItem(key, JSON.stringify(valueToStore)).catch(error =>
+                console.error('Error saving to AsyncStorage:', error)
+            );
+            return valueToStore;
+        });
+    }, [key]);
 
     return [storedValue, setValue, isLoaded];
 }

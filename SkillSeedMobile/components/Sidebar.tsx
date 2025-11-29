@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Switch, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import tw from 'twrnc';
-import { Node, Tag, Difficulty } from '../types';
+import { Node, Tag, Difficulty, Vault } from '../types';
 import { isUnassigned } from '../utils';
 import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TagEditModal from './TagEditModal';
+import VaultSwitcher from './VaultSwitcher';
 
 // Icons
 const CloseIcon = ({ color = "#9ca3af" }: { color?: string }) => (
@@ -73,6 +74,13 @@ interface SidebarProps {
     onReset: () => void;
     onExport: () => void;
     onImport: () => void;
+    // Vault props
+    vaults: Vault[];
+    currentVaultId: string | null;
+    onSwitchVault: (vaultId: string) => void;
+    onCreateVault: (name: string) => void;
+    onRenameVault: (vaultId: string, newName: string) => void;
+    onDeleteVault: (vaultId: string) => void;
 }
 
 type SortOption = 'Name (A-Z)' | 'Name (Z-A)' | 'Newest First' | 'Oldest First' | 'Difficulty (Easy→Hard)' | 'Difficulty (Hard→Easy)';
@@ -90,7 +98,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     difficultyVisible,
     onReset,
     onExport,
-    onImport
+    onImport,
+    vaults,
+    currentVaultId,
+    onSwitchVault,
+    onCreateVault,
+    onRenameVault,
+    onDeleteVault,
 }) => {
     const [activeTab, setActiveTab] = useState<'Notes' | 'Settings'>('Notes');
     const [searchQuery, setSearchQuery] = useState('');
@@ -475,12 +489,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                             >
                                 <Text style={tw`text-red-400 mr-4`}><TrashIcon /></Text>
                                 <View>
-                                    <Text style={tw`text-red-400 font-bold`}>Reset Everything</Text>
-                                    <Text style={tw`text-red-400/70 text-xs`}>Clear all local data</Text>
+                                    <Text style={tw`text-red-400 font-bold`}>Reset Current Vault</Text>
+                                    <Text style={tw`text-red-400/70 text-xs`}>Clear data in this vault</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
                     )}
+                </View>
+
+                {/* Vault Switcher at Bottom */}
+                <View style={tw`p-4 border-t border-gray-800 bg-gray-900`}>
+                    <VaultSwitcher
+                        vaults={vaults}
+                        currentVaultId={currentVaultId}
+                        onSwitchVault={onSwitchVault}
+                        onCreateVault={onCreateVault}
+                        onRenameVault={onRenameVault}
+                        onDeleteVault={onDeleteVault}
+                    />
                 </View>
             </Animated.View>
 

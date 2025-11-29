@@ -1,9 +1,9 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, useWindowDimensions, Alert } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 import tw from 'twrnc';
-import { Node, Tag, Difficulty, NodeFormData } from './types';
+import { Node, Tag, Difficulty, NodeFormData, Vault } from './types';
 import useAsyncStorage from './hooks/useAsyncStorage';
 import { isUnassigned } from './utils';
 import GraphView from './components/GraphView';
@@ -33,12 +33,56 @@ export default function App() {
   const initialData = getInitialData();
   const [nodes, setNodes, nodesLoaded] = useAsyncStorage<Node[]>('skillseed-nodes', initialData.nodes);
   const [tags, setTags, tagsLoaded] = useAsyncStorage<Tag[]>('skillseed-tags', initialData.tags);
+  const [vaults, setVaults, vaultsLoaded] = useAsyncStorage<Vault[]>('skillseed-vaults', []);
+  const [currentVaultId, setCurrentVaultId, currentVaultIdLoaded] = useAsyncStorage<string | null>('skillseed-current-vault', null);
   const [activeTag, setActiveTag] = useState<string | null | 'UNASSIGNED'>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showDifficulty, setShowDifficulty] = useState(true);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+
+  // Vault-filtered data
+  const currentVaultNodes = useMemo(
+    () => nodes.filter(n => n.vaultId === currentVaultId),
+    [nodes, currentVaultId]
+  );
+
+  const currentVaultTags = useMemo(
+    () => tags.filter(t => t.vaultId === currentVaultId),
+    [tags, currentVaultId]
+  );
+
+  // Initialize vaults on first load
+  useEffect(() => {
+    if (!vaultsLoaded || !currentVaultIdLoaded) return;
+
+    // If no vaults exist, create a default vault
+    if (vaults.length === 0) {
+      const defaultVault: Vault = {
+        id: simpleUUID(),
+        name: "Default",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setVaults([defaultVault]);
+      setCurrentVaultId(defaultVault.id);
+    } else if (!currentVaultId || !vaults.find(v => v.id === currentVaultId)) {
+      // If currentVaultId is invalid, set to first vault
+      setCurrentVaultId(vaults[0].id);
+    }
+  }, [vaults, vaultsLoaded, currentVaultId, currentVaultIdLoaded, setVaults, setCurrentVaultId]);
+
+  // Migrate existing nodes/tags without vaultId to current vault
+  useEffect(() => {
+    if (!nodesLoaded || !tagsLoaded || !vaultsLoaded || !currentVaultId) return;
+
+    const needsMigration = nodes.some(n => !n.vaultId) || tags.some(t => !t.vaultId);
+    if (needsMigration) {
+      setNodes(prev => prev.map(n => n.vaultId ? n : { ...n, vaultId: currentVaultId }));
+      setTags(prev => prev.map(t => t.vaultId ? t : { ...t, vaultId: currentVaultId }));
+    }
+  }, [nodes, tags, nodesLoaded, tagsLoaded, vaultsLoaded, currentVaultId, setNodes, setTags]);
 
   const handleNodeClick = useCallback((node: Node) => {
     setSelectedNode(node);
@@ -67,18 +111,24 @@ export default function App() {
   };
 
   const updateTags = (newNodes: Node[], currentTags: Tag[] = tags) => {
-    const newTagsMap = new Map<string, { totalXp: number, color: string }>();
+    if (!currentVaultId) return;
 
-    currentTags.forEach(tag => newTagsMap.set(tag.name, { totalXp: 0, color: tag.color }));
+    const newTagsMap = new Map<string, { totalXp: number, color: string, vaultId: string }>();
 
-    newNodes.forEach(node => {
+    // Initialize with existing tags from current vault
+    currentTags.filter(tag => tag.vaultId === currentVaultId).forEach(tag =>
+      newTagsMap.set(tag.name, { totalXp: 0, color: tag.color, vaultId: currentVaultId })
+    );
+
+    // Calculate totals from nodes in current vault
+    newNodes.filter(node => node.vaultId === currentVaultId).forEach(node => {
       // Skip unassigned nodes for tag totals
       if (node.tags.length === 0) return;
 
       node.tags.forEach(tagName => {
         if (!newTagsMap.has(tagName)) {
           const newColor = TAG_COLORS[newTagsMap.size % TAG_COLORS.length];
-          newTagsMap.set(tagName, { totalXp: 0, color: newColor });
+          newTagsMap.set(tagName, { totalXp: 0, color: newColor, vaultId: currentVaultId });
         }
         const currentTag = newTagsMap.get(tagName)!;
         currentTag.totalXp += node.xp;
@@ -89,7 +139,9 @@ export default function App() {
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    setTags(sortedTags);
+    // Merge with tags from other vaults
+    const otherVaultTags = currentTags.filter(tag => tag.vaultId !== currentVaultId);
+    setTags([...otherVaultTags, ...sortedTags]);
   };
 
   const handleSaveNode = (nodeData: NodeFormData, id?: string) => {
@@ -122,6 +174,7 @@ export default function App() {
           createdAt: new Date().toISOString(),
           links,
           xp,
+          vaultId: currentVaultId!,
         };
         updatedNodes = [...prevNodes, newNode];
       }
@@ -162,15 +215,15 @@ export default function App() {
 
   const handleReset = () => {
     Alert.alert(
-      "Reset Everything",
-      "Are you sure? This will delete all your data.",
+      "Reset Current Vault",
+      `Are you sure? This will delete all nodes and tags in the current vault (${vaults.find(v => v.id === currentVaultId)?.name}).`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Reset", style: "destructive", onPress: () => {
-            const initial = getInitialData();
-            setNodes(initial.nodes);
-            setTags(initial.tags);
+            // Delete all nodes and tags from current vault
+            setNodes(prev => prev.filter(n => n.vaultId !== currentVaultId));
+            setTags(prev => prev.filter(t => t.vaultId !== currentVaultId));
             setIsSidebarOpen(false);
           }
         }
@@ -194,8 +247,8 @@ export default function App() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete", style: "destructive", onPress: () => {
-            // Remove tag from global tags list
-            const newTagsList = tags.filter(t => t.name !== tagName);
+            // Remove tag from current vault only
+            const newTagsList = tags.filter(t => !(t.name === tagName && t.vaultId === currentVaultId));
             setTags(newTagsList);
 
             // Update all nodes that reference this tag
@@ -230,9 +283,9 @@ export default function App() {
   };
 
   const handleEditTag = (oldTagName: string, newTagName: string, newColor: string) => {
-    // 1. Update the tag in the tags list
+    // 1. Update the tag in the tags list (current vault only)
     const newTagsList = tags.map(t =>
-      t.name === oldTagName
+      t.name === oldTagName && t.vaultId === currentVaultId
         ? { ...t, name: newTagName, color: newColor }
         : t
     );
@@ -261,11 +314,13 @@ export default function App() {
     }
   };
 
-  const [visibleTagsState, setVisibleTagsState, visibleTagsLoaded] = useAsyncStorage<Record<string, boolean>>('skillseed-visible-tags', {});
+  // Visibility state is per-vault
+  const visibilityKey = currentVaultId ? `skillseed-visible-tags-${currentVaultId}` : 'skillseed-visible-tags-default';
+  const [visibleTagsState, setVisibleTagsState, visibleTagsLoaded] = useAsyncStorage<Record<string, boolean>>(visibilityKey, {});
 
   // Initialize visibleTagsState when tags change, but preserve existing keys
   useEffect(() => {
-    if (!tagsLoaded || !visibleTagsLoaded) return;
+    if (!tagsLoaded || !visibleTagsLoaded || !currentVaultId) return;
 
     setVisibleTagsState(prev => {
       const next = { ...prev };
@@ -273,15 +328,15 @@ export default function App() {
       if (next['UNASSIGNED'] === undefined) {
         next['UNASSIGNED'] = true;
       }
-      // Ensure all tags have keys
-      tags.forEach(t => {
+      // Ensure all tags from current vault have keys
+      currentVaultTags.forEach(t => {
         if (next[t.name] === undefined) {
           next[t.name] = true;
         }
       });
       return next;
     });
-  }, [tags, tagsLoaded, visibleTagsLoaded]);
+  }, [currentVaultTags, tagsLoaded, visibleTagsLoaded, currentVaultId, setVisibleTagsState]);
 
   const handleToggleTagVisibility = useCallback((tagName: string) => {
     setVisibleTagsState(prev => ({
@@ -290,10 +345,10 @@ export default function App() {
     }));
   }, [setVisibleTagsState]);
 
-  const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? tags.filter(t => t.name === activeTag) : tags;
+  const visibleTags = activeTag && activeTag !== 'UNASSIGNED' ? currentVaultTags.filter(t => t.name === activeTag) : currentVaultTags;
 
-  // Filter nodes based on visibility state AND active tag
-  const visibleNodes = nodes.filter(n => {
+  // Filter nodes based on visibility state AND active tag (current vault only)
+  const visibleNodes = currentVaultNodes.filter(n => {
     // 1. Filter by active tag (zoom)
     if (activeTag === 'UNASSIGNED') {
       if (!isUnassigned(n)) return false;
@@ -313,7 +368,57 @@ export default function App() {
     return true;
   });
 
-  if (!nodesLoaded || !tagsLoaded || !visibleTagsLoaded) {
+  // Vault management handlers
+  const handleCreateVault = (vaultName: string) => {
+    const newVault: Vault = {
+      id: simpleUUID(),
+      name: vaultName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setVaults(prev => [...prev, newVault]);
+    setCurrentVaultId(newVault.id);
+  };
+
+  const handleRenameVault = (vaultId: string, newName: string) => {
+    setVaults(prev =>
+      prev.map(v =>
+        v.id === vaultId
+          ? { ...v, name: newName, updatedAt: new Date().toISOString() }
+          : v
+      )
+    );
+  };
+
+  const handleDeleteVault = (vaultId: string) => {
+    // Delete all nodes and tags from this vault
+    setNodes(prev => prev.filter(n => n.vaultId !== vaultId));
+    setTags(prev => prev.filter(t => t.vaultId !== vaultId));
+    setVaults(prev => prev.filter(v => v.id !== vaultId));
+
+    // Switch to another vault or create a new default one
+    const remainingVaults = vaults.filter(v => v.id !== vaultId);
+    if (remainingVaults.length > 0) {
+      setCurrentVaultId(remainingVaults[0].id);
+    } else {
+      // Create a new default vault
+      const defaultVault: Vault = {
+        id: simpleUUID(),
+        name: "Default",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setVaults([defaultVault]);
+      setCurrentVaultId(defaultVault.id);
+    }
+  };
+
+  const handleSwitchVault = (vaultId: string) => {
+    setCurrentVaultId(vaultId);
+    setActiveTag(null); // Reset active tag when switching vaults
+  };
+
+  if (!nodesLoaded || !tagsLoaded || !vaultsLoaded || !currentVaultIdLoaded || !visibleTagsLoaded) {
     return <View style={tw`flex-1 bg-gray-900 justify-center items-center`}><Text style={tw`text-white`}>Loading...</Text></View>;
   }
 
@@ -322,6 +427,7 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       <View style={tw`relative flex-1`}>
         <View style={tw`absolute top-6 left-4 z-10 flex-col items-start gap-2`}>
+          {/* Menu Button */}
           <TouchableOpacity
             onPress={() => setIsSidebarOpen(true)}
             style={tw`bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-lg w-10 h-10 items-center justify-center`}
@@ -331,6 +437,7 @@ export default function App() {
             </Svg>
           </TouchableOpacity>
 
+          {/* Back to Overview Button */}
           {activeTag && (
             <TouchableOpacity
               onPress={() => setActiveTag(null)}
@@ -355,8 +462,6 @@ export default function App() {
           onToggleTagVisibility={handleToggleTagVisibility}
         />
 
-
-
         <TouchableOpacity
           onPress={openAddNodeModal}
           style={tw`absolute bottom-4 right-4 z-20 bg-indigo-600 rounded-full p-4 shadow-lg`}
@@ -371,16 +476,16 @@ export default function App() {
           onSave={handleSaveNode}
           onDelete={handleDeleteNode}
           nodeToEdit={selectedNode}
-          allTags={tags}
-          allNodes={nodes}
+          allTags={currentVaultTags}
+          allNodes={currentVaultNodes}
           showDifficulty={showDifficulty}
         />
 
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          nodes={nodes}
-          tags={tags}
+          nodes={currentVaultNodes}
+          tags={currentVaultTags}
           onNodeClick={(node) => {
             handleNodeClick(node);
             setIsSidebarOpen(false);
@@ -393,6 +498,12 @@ export default function App() {
           onReset={handleReset}
           onExport={handleExport}
           onImport={handleImport}
+          vaults={vaults}
+          currentVaultId={currentVaultId}
+          onSwitchVault={handleSwitchVault}
+          onCreateVault={handleCreateVault}
+          onRenameVault={handleRenameVault}
+          onDeleteVault={handleDeleteVault}
         />
       </View>
     </SafeAreaView>

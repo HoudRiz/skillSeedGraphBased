@@ -5,6 +5,13 @@ export enum Difficulty {
   Hard = 'Hard',
 }
 
+export interface Vault {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Node {
   id: string;
   title: string;
@@ -14,6 +21,7 @@ export interface Node {
   xp: number;
   links: string[];
   createdAt: string;
+  vaultId: string;
   x?: number;
   y?: number;
 }
@@ -22,6 +30,7 @@ export interface Tag {
   name: string;
   color: string;
   totalXp: number;
+  vaultId: string;
 }
 
 export interface NodeFormData {
