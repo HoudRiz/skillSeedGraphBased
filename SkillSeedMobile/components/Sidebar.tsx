@@ -30,17 +30,15 @@ const ChevronRightIcon = ({ color = "#9ca3af" }: { color?: string }) => (
 );
 
 const TrashIcon = ({ color = "#9ca3af" }: { color?: string }) => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Polyline points="3 6 5 6 21 6" />
-        <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        <Line x1="10" y1="11" x2="10" y2="17" />
-        <Line x1="14" y1="11" x2="14" y2="17" />
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <Path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </Svg>
 );
 
-const PencilIcon = ({ color = "#9ca3af" }: { color?: string }) => (
-    <Svg width="16" height="16" viewBox="0 0 20 20" fill={color}>
-        <Path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+const EditIcon = ({ color = "#9ca3af" }: { color?: string }) => (
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+        <Path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <Path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </Svg>
 );
 
@@ -353,7 +351,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         }}
                                                         style={tw`p-1`}
                                                     >
-                                                        <PencilIcon color="#9ca3af" />
+                                                        <EditIcon color="#9ca3af" />
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
                                                         onPress={(e) => {

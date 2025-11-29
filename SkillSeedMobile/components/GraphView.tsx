@@ -92,7 +92,7 @@ const EyeOffIcon = ({ color = "currentColor" }: { color?: string }) => (
     </Svg>
 );
 
-const GraphView: React.FC<GraphViewProps> = ({
+const GraphView = React.memo(({
     nodes,
     tags,
     onNodeClick,
@@ -104,7 +104,7 @@ const GraphView: React.FC<GraphViewProps> = ({
     showDifficulty,
     visibleTagsState,
     onToggleTagVisibility
-}) => {
+}: GraphViewProps) => {
     // State for simulation nodes to trigger re-renders
     const [simNodes, setSimNodes] = useState<SimulationNode[]>([]);
     const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
@@ -685,6 +685,6 @@ const GraphView: React.FC<GraphViewProps> = ({
             </View>
         </View>
     );
-};
+});
 
 export default GraphView;
