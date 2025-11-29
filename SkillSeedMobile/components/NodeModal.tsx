@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import TagEditor from './TagEditor';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import Svg, { Path } from 'react-native-svg';
@@ -39,9 +40,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
     const [isPreview, setIsPreview] = useState(false);
     const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
 
-    const [tagInput, setTagInput] = useState('');
-    const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-    const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
+
 
     const [showLinkSuggestions, setShowLinkSuggestions] = useState(false);
     const [linkSuggestions, setLinkSuggestions] = useState<Node[]>([]);
@@ -61,8 +60,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
             setDifficulty(Difficulty.Easy);
         }
         setIsPreview(false);
-        setTagInput('');
-        setShowTagSuggestions(false);
+        setIsPreview(false);
         setShowLinkSuggestions(false);
     }, [nodeToEdit, isOpen]);
 
@@ -77,18 +75,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
         }
     }, [isOpen, nodeToEdit]);
 
-    useEffect(() => {
-        if (tagInput.trim()) {
-            const filtered = allTags.filter(tag =>
-                tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
-                !selectedTags.includes(tag.name)
-            );
-            setTagSuggestions(filtered);
-            setShowTagSuggestions(filtered.length > 0);
-        } else {
-            setShowTagSuggestions(false);
-        }
-    }, [tagInput, allTags, selectedTags]);
+
 
     useEffect(() => {
         const lastTwoChars = description.slice(Math.max(0, cursorPosition - 2), cursorPosition);
@@ -114,27 +101,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
         }
     }, [description, cursorPosition, allNodes, showLinkSuggestions]);
 
-    const handleAddTag = (tagName: string) => {
-        if (tagName.trim() && !selectedTags.includes(tagName)) {
-            setSelectedTags([...selectedTags, tagName]);
-        }
-        setTagInput('');
-        setShowTagSuggestions(false);
-    };
 
-    const handleTagInputSubmit = () => {
-        if (tagInput.trim()) {
-            if (tagSuggestions.length > 0) {
-                handleAddTag(tagSuggestions[0].name);
-            } else {
-                handleAddTag(tagInput.trim());
-            }
-        }
-    };
-
-    const handleRemoveTag = (tagName: string) => {
-        setSelectedTags(selectedTags.filter(t => t !== tagName));
-    };
 
     const handleSelectLink = (node: Node) => {
         const beforeCursor = description.slice(0, cursorPosition);
@@ -186,49 +153,14 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
 
                     {/* Toolbar */}
                     <View style={tw`px-6 pb-4 flex-col gap-4 border-b border-gray-800`}>
+
+
                         {/* Tags Row - Full Width Container */}
-                        <View style={tw`flex-row flex-wrap items-center gap-2 border border-gray-700 rounded-lg p-2 bg-gray-800`}>
-                            <Text style={tw`text-gray-500 text-sm ml-2`}>#</Text>
-                            {selectedTags.map(tagName => {
-                                const tag = allTags.find(t => t.name === tagName);
-                                return (
-                                    <TouchableOpacity
-                                        key={tagName}
-                                        onPress={() => handleRemoveTag(tagName)}
-                                        style={[tw`px-3 py-1 rounded-md flex-row items-center`, { backgroundColor: tag?.color || '#6366f1' }]}
-                                    >
-                                        <Text style={tw`text-white text-sm font-medium mr-1`}>{tagName}</Text>
-                                        <Text style={tw`text-white text-xs opacity-70`}>×</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-
-                            <View style={tw`flex-1 relative z-50`}>
-                                <TextInput
-                                    style={tw`text-white px-2 py-1 text-sm min-w-24`}
-                                    value={tagInput}
-                                    onChangeText={setTagInput}
-                                    onSubmitEditing={handleTagInputSubmit}
-                                    placeholder={selectedTags.length === 0 ? "Add tags (optional)..." : ""}
-                                    placeholderTextColor="#6b7280"
-                                    returnKeyType="done"
-                                />
-
-                                {showTagSuggestions && (
-                                    <View style={tw`absolute top-10 left-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-48 overflow-hidden`}>
-                                        {tagSuggestions.map(tag => (
-                                            <TouchableOpacity
-                                                key={tag.name}
-                                                onPress={() => handleAddTag(tag.name)}
-                                                style={tw`px-4 py-3 border-b border-gray-700 active:bg-gray-700`}
-                                            >
-                                                <Text style={tw`text-white text-sm`}>{tag.name}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
-                            </View>
-                        </View>
+                        <TagEditor
+                            selectedTags={selectedTags}
+                            allTags={allTags}
+                            onTagsChange={setSelectedTags}
+                        />
 
                         {/* Controls Row: Difficulty & View Toggle */}
                         <View style={tw`flex-row justify-between items-center gap-4`}>
