@@ -435,7 +435,7 @@ export default function App() {
       const fileName = `${vault.name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
 
       // For React Native, we'll use expo-file-system and expo-sharing
-      const FileSystem = require('expo-file-system');
+      const FileSystem = require('expo-file-system/legacy');
       const Sharing = require('expo-sharing');
 
       const fileUri = FileSystem.documentDirectory + fileName;
@@ -454,7 +454,7 @@ export default function App() {
   const handleImport = async () => {
     try {
       const DocumentPicker = require('expo-document-picker');
-      const FileSystem = require('expo-file-system');
+      const FileSystem = require('expo-file-system/legacy');
 
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/json',

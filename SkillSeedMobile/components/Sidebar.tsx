@@ -485,7 +485,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 onPress={onReset}
                                 style={tw`flex-row items-center bg-red-900/20 p-4 rounded-lg border border-red-900/50 active:bg-red-900/30`}
                             >
-                                <Text style={tw`text-red-400 mr-4`}><TrashIcon /></Text>
+                                <Text style={tw`text-red-400 mr-4`}><TrashIcon color="#ef4444" /></Text>
                                 <View>
                                     <Text style={tw`text-red-400 font-bold`}>Reset Current Vault</Text>
                                     <Text style={tw`text-red-400/70 text-xs`}>Clear data in this vault</Text>
