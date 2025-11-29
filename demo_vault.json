@@ -1,0 +1,265 @@
+{
+    "vault": {
+        "id": "demo-vault-id",
+        "name": "Game Dev Mastery",
+        "createdAt": "2025-11-29T10:00:00.000Z",
+        "updatedAt": "2025-11-29T10:00:00.000Z"
+    },
+    "nodes": [
+        {
+            "id": "n1",
+            "title": "Unity Basics",
+            "description": "Introduction to the Unity Editor, GameObjects, and Components.",
+            "tags": [
+                "Programming"
+            ],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [],
+            "createdAt": "2025-11-29T10:01:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n2",
+            "title": "C# Scripting",
+            "description": "Learn C# programming for Unity. Prerequisite: [[Unity Basics]].",
+            "tags": [
+                "Programming"
+            ],
+            "difficulty": "Medium",
+            "xp": 20,
+            "links": [
+                "n1"
+            ],
+            "createdAt": "2025-11-29T10:02:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n3",
+            "title": "Blender Interface",
+            "description": "Navigating the viewport and basic object manipulation.",
+            "tags": [
+                "Art"
+            ],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [],
+            "createdAt": "2025-11-29T10:03:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n4",
+            "title": "Low Poly Character",
+            "description": "Modeling a low poly character in [[Blender Interface]].",
+            "tags": [
+                "Art"
+            ],
+            "difficulty": "Hard",
+            "xp": 30,
+            "links": [
+                "n3"
+            ],
+            "createdAt": "2025-11-29T10:04:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n5",
+            "title": "Game Design Document",
+            "description": "Writing a clear GDD.",
+            "tags": [
+                "Design"
+            ],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [],
+            "createdAt": "2025-11-29T10:05:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n6",
+            "title": "Core Loop",
+            "description": "Defining the core gameplay loop in your [[Game Design Document]].",
+            "tags": [
+                "Design",
+                "Programming"
+            ],
+            "difficulty": "Medium",
+            "xp": 20,
+            "links": [
+                "n5"
+            ],
+            "createdAt": "2025-11-29T10:06:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n7",
+            "title": "A* Pathfinding",
+            "description": "Implementing A* algorithm in [[C# Scripting]].",
+            "tags": [
+                "Programming",
+                "Math"
+            ],
+            "difficulty": "Hard",
+            "xp": 30,
+            "links": [
+                "n2"
+            ],
+            "createdAt": "2025-11-29T10:07:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n8",
+            "title": "Vector Math",
+            "description": "Dot product, cross product, and normalization.",
+            "tags": [
+                "Math"
+            ],
+            "difficulty": "Medium",
+            "xp": 20,
+            "links": [],
+            "createdAt": "2025-11-29T10:08:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n9",
+            "title": "Shader Graph",
+            "description": "Creating visual shaders. Requires [[Unity Basics]] and [[Vector Math]].",
+            "tags": [
+                "Art",
+                "Programming"
+            ],
+            "difficulty": "Hard",
+            "xp": 30,
+            "links": [
+                "n1",
+                "n8"
+            ],
+            "createdAt": "2025-11-29T10:09:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n10",
+            "title": "Sound Design 101",
+            "description": "Basics of digital audio.",
+            "tags": [
+                "Audio"
+            ],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [],
+            "createdAt": "2025-11-29T10:10:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n11",
+            "title": "Foley Recording",
+            "description": "Recording custom sound effects for [[Sound Design 101]].",
+            "tags": [
+                "Audio"
+            ],
+            "difficulty": "Medium",
+            "xp": 20,
+            "links": [
+                "n10"
+            ],
+            "createdAt": "2025-11-29T10:11:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n12",
+            "title": "Marketing Strategy",
+            "description": "Planning your game launch.",
+            "tags": [
+                "Marketing"
+            ],
+            "difficulty": "Medium",
+            "xp": 20,
+            "links": [],
+            "createdAt": "2025-11-29T10:12:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n13",
+            "title": "Social Media",
+            "description": "Building a community. Part of [[Marketing Strategy]].",
+            "tags": [
+                "Marketing"
+            ],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [
+                "n12"
+            ],
+            "createdAt": "2025-11-29T10:13:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n14",
+            "title": "Steam Release",
+            "description": "Publishing to Steam. Requires finished [[Unity Basics]] project and [[Marketing Strategy]].",
+            "tags": [
+                "Marketing",
+                "Programming"
+            ],
+            "difficulty": "Hard",
+            "xp": 30,
+            "links": [
+                "n1",
+                "n12"
+            ],
+            "createdAt": "2025-11-29T10:14:00.000Z",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "id": "n15",
+            "title": "Unassigned Idea",
+            "description": "Just a random thought.",
+            "tags": [],
+            "difficulty": "Easy",
+            "xp": 10,
+            "links": [],
+            "createdAt": "2025-11-29T10:15:00.000Z",
+            "vaultId": "demo-vault-id"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Programming",
+            "totalXp": 110,
+            "color": "#3b82f6",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "name": "Art",
+            "totalXp": 70,
+            "color": "#ef4444",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "name": "Design",
+            "totalXp": 30,
+            "color": "#10b981",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "name": "Math",
+            "totalXp": 50,
+            "color": "#f59e0b",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "name": "Audio",
+            "totalXp": 30,
+            "color": "#8b5cf6",
+            "vaultId": "demo-vault-id"
+        },
+        {
+            "name": "Marketing",
+            "totalXp": 60,
+            "color": "#ec4899",
+            "vaultId": "demo-vault-id"
+        }
+    ],
+    "exportedAt": "2025-11-29T10:20:00.000Z",
+    "version": "1.0"
+}
