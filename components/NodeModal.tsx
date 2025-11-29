@@ -132,7 +132,7 @@ const NodeModal: React.FC<NodeModalProps> = ({ isOpen, onClose, onSave, onDelete
     };
 
     return (
-        <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet">
+        <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={tw`flex-1 bg-gray-900`}

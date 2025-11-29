@@ -38,6 +38,7 @@ const TagEditModal: React.FC<TagEditModalProps> = ({ isOpen, onClose, onSave, ta
         }
     }, [tagToEdit, isOpen]);
 
+
     const handleSave = () => {
         if (!tagToEdit) return;
 
@@ -71,7 +72,7 @@ const TagEditModal: React.FC<TagEditModalProps> = ({ isOpen, onClose, onSave, ta
     };
 
     return (
-        <Modal visible={isOpen} transparent animationType="fade">
+        <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={tw`flex-1 justify-center items-center bg-black/70`}

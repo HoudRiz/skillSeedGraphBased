@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, useWindowDimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, useWindowDimensions, Alert, BackHandler } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 import tw from 'twrnc';
 import { Node, Tag, Difficulty, NodeFormData, Vault } from './types';
@@ -83,6 +83,33 @@ export default function App() {
       setTags(prev => prev.map(t => t.vaultId ? t : { ...t, vaultId: currentVaultId }));
     }
   }, [nodes, tags, nodesLoaded, tagsLoaded, vaultsLoaded, currentVaultId, setNodes, setTags]);
+
+  // Handle Android back button and iOS swipe gestures
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Priority order: Modal > Sidebar > Active Tag > Exit App
+      if (isModalOpen) {
+        closeModal();
+        return true; // Prevent default behavior (exit app)
+      }
+
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+        return true;
+      }
+
+      if (activeTag) {
+        setActiveTag(null);
+        return true;
+      }
+
+      // If nothing is open, allow default behavior (exit app)
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [isModalOpen, isSidebarOpen, activeTag]);
+
 
   const handleNodeClick = useCallback((node: Node) => {
     setSelectedNode(node);
