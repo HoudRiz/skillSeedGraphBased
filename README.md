@@ -70,24 +70,24 @@ SkillSeed Mobile is a graph-based skill management system that allows users to c
 ## 📸 Screenshots
 
 ### Home Screen
-![Home Screen](Screenshots/HomePage.png)
+<img src="Screenshots/HomePage.png" width="600" alt="Home Screen">
 
 ### Graph Navigation
-![Graph Navigation](Screenshots/graphNavigationOne.jpg)
-![Graph Navigation](Screenshots/graphNavigationTwo.jpg)
+<img src="Screenshots/graphNavigationOne.jpg" width="600" alt="Graph Navigation">
+<img src="Screenshots/graphNavigationTwo.jpg" width="600" alt="Graph Navigation">
 
 ### Node Detail View
-![node detail view](Screenshots/node%20view.jpg)
+<img src="Screenshots/node%20view.jpg" width="600" alt="Node Detail View">
 
 ### Sidebar & Settings
-![Sidebar](Screenshots/sideBar.jpg)
-![settings](Screenshots/settings.jpg)
+<img src="Screenshots/sideBar.jpg" width="600" alt="Sidebar">
+<img src="Screenshots/settings.jpg" width="600" alt="Settings">
 
 ### Tag Management
-![tag managment](Screenshots/tagManagment.jpg)
+<img src="Screenshots/tagManagment.jpg" width="600" alt="Tag Management">
 
 ### Vault Switcher
-![vault switcher](Screenshots/vaultManagement.jpg)      
+<img src="Screenshots/vaultManagement.jpg" width="600" alt="Vault Switcher">      
 
 ## 🛠️ Technologies Used
 
