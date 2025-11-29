@@ -61,6 +61,26 @@ export default function TagEditor({ selectedTags, allTags, onTagsChange }: TagEd
         }
     };
 
+    const handleInputChange = (text: string) => {
+        // Check for space
+        if (text.endsWith(' ')) {
+            const tagToAdd = text.trim();
+            if (tagToAdd) {
+                // If the typed tag matches a suggestion exactly (case-insensitive), use the suggestion's casing/color
+                const exactMatch = tagSuggestions.find(t => t.name.toLowerCase() === tagToAdd.toLowerCase());
+                if (exactMatch) {
+                    handleAddTag(exactMatch.name);
+                } else {
+                    handleAddTag(tagToAdd);
+                }
+            } else {
+                setTagInput('');
+            }
+        } else {
+            setTagInput(text);
+        }
+    };
+
     const handleRemoveTag = (tagName: string) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         onTagsChange(selectedTags.filter(t => t !== tagName));
@@ -176,8 +196,13 @@ export default function TagEditor({ selectedTags, allTags, onTagsChange }: TagEd
                 <TextInput
                     style={tw`text-white px-2 py-1 text-sm min-w-24`}
                     value={tagInput}
-                    onChangeText={setTagInput}
+                    onChangeText={handleInputChange}
                     onSubmitEditing={handleTagInputSubmit}
+                    onKeyPress={({ nativeEvent }) => {
+                        if (nativeEvent.key === 'Tab') {
+                            handleTagInputSubmit();
+                        }
+                    }}
                     placeholder={selectedTags.length === 0 ? "Add tags (optional)..." : ""}
                     placeholderTextColor="#6b7280"
                     returnKeyType="done"

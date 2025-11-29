@@ -443,7 +443,6 @@ export default function App() {
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
-        // Alert.alert('Export Ready', 'Please choose "Save to Files" or similar in the share sheet to save your JSON file.');
       } else {
         Alert.alert('Success', `Vault exported to ${fileName}`);
       }
