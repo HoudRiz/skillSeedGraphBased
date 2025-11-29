@@ -443,6 +443,7 @@ export default function App() {
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
+        // Alert.alert('Export Ready', 'Please choose "Save to Files" or similar in the share sheet to save your JSON file.');
       } else {
         Alert.alert('Success', `Vault exported to ${fileName}`);
       }
@@ -461,12 +462,19 @@ export default function App() {
         copyToCacheDirectory: true
       });
 
-      if (result.type === 'cancel' || !result.uri) {
+      console.log('DocumentPicker result:', result);
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        console.log('Import cancelled or no assets');
         return;
       }
 
-      const jsonString = await FileSystem.readAsStringAsync(result.uri);
+      const uri = result.assets[0].uri;
+      console.log('Reading file from:', uri);
+
+      const jsonString = await FileSystem.readAsStringAsync(uri);
       const importData = JSON.parse(jsonString);
+      console.log('Parsed import data:', importData);
 
       // Validate import data
       if (!importData.vault || !importData.nodes || !importData.tags) {
@@ -474,15 +482,17 @@ export default function App() {
         return;
       }
 
-      // Check if vault name already exists
-      const existingVault = vaults.find(v => v.name === importData.vault.name);
+      // Check if vault name already exists and rename if necessary
+      let vaultName = importData.vault.name;
+      let existingVault = vaults.find(v => v.name === vaultName);
       if (existingVault) {
-        Alert.alert(
-          'Vault Exists',
-          `A vault named "${importData.vault.name}" already exists. Please rename it first.`,
-          [{ text: 'OK' }]
-        );
-        return;
+        vaultName = `${vaultName} (Imported)`;
+        // Check again just in case
+        let counter = 1;
+        while (vaults.find(v => v.name === vaultName)) {
+          vaultName = `${importData.vault.name} (Imported ${counter})`;
+          counter++;
+        }
       }
 
       // Generate new IDs for imported vault
@@ -490,6 +500,7 @@ export default function App() {
       const importedVault: Vault = {
         ...importData.vault,
         id: newVaultId,
+        name: vaultName,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -511,8 +522,9 @@ export default function App() {
       setTags(prev => [...prev, ...importedTags]);
       setCurrentVaultId(newVaultId);
 
-      Alert.alert('Success', `Vault "${importedVault.name}" imported successfully!`);
+      Alert.alert('Success', `Vault "${vaultName}" imported successfully!`);
     } catch (error) {
+      console.error('Import error:', error);
       Alert.alert('Import Failed', 'Could not import vault: ' + error);
     }
   };
